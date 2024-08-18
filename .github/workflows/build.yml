@@ -1,0 +1,50 @@
+name: Go
+
+on:
+  push:
+  pull_request:
+    branches: [ "main" ]
+
+jobs:
+
+  build:
+    name: Build
+    runs-on: ubuntu-latest
+    container:
+      image: ghcr.io/vanilla-os/pico:main
+
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Set up Go
+      uses: actions/setup-go@v5
+      with:
+        go-version: 1.22
+
+    - name: Build
+      run: go build -o pallas -ldflags="-X 'main.Version=${{ github.sha }}'"
+
+    - name: Run Tests
+      run: go test -v ./tests/...
+    
+    - name: Calculate and Save Checksums
+      run: |
+        sha256sum pallas >> checksums.txt
+
+    - uses: actions/upload-artifact@v4
+      with:
+        name: pallas
+        path: |
+            pallas
+            checksums.txt
+
+    - uses: softprops/action-gh-release@v2
+      if: github.repository == 'vanilla-os/Pallas' && github.ref == 'refs/heads/main'
+      with:
+        token: "${{ secrets.GITHUB_TOKEN }}"
+        tag_name: "continuous"
+        prerelease: true
+        name: "Continuous Build"
+        files: |
+            pallas
+            checksums.txt
