@@ -63,3 +63,19 @@ func (i InterfaceExtractor) Extract(decl ast.Decl, fs *token.FileSet, interfaces
 		Package:     pkgName,
 	}
 }
+
+// TypeExtractor extracts information from type declarations
+type TypeExtractor struct{}
+
+func (t TypeExtractor) Extract(decl ast.Decl, fs *token.FileSet, interfaces map[string]EntityInfo, pkgName string) EntityInfo {
+	spec := decl.(*ast.GenDecl).Specs[0].(*ast.TypeSpec)
+	typeExpr := formatExpr(spec.Type)
+
+	return EntityInfo{
+		Name:        spec.Name.Name,
+		Type:        "type",
+		Description: extractComment(decl.(*ast.GenDecl).Doc),
+		Body:        typeExpr,
+		Package:     pkgName,
+	}
+}

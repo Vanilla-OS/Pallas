@@ -1,6 +1,7 @@
 package parser
 
 import (
+	"fmt"
 	"go/ast"
 	"go/parser"
 	"go/token"
@@ -39,6 +40,7 @@ func ParseEntitiesInPackage(pkgPath string) ([]EntityInfo, error) {
 		"function":  FunctionExtractor{},
 		"struct":    StructExtractor{},
 		"interface": InterfaceExtractor{},
+		"type":      TypeExtractor{},
 	}
 
 	// here we parse all entities, store interfaces, and collect methods
@@ -77,7 +79,10 @@ func ParseEntitiesInPackage(pkgPath string) ([]EntityInfo, error) {
 							default:
 								entityType = "type"
 							}
-							if entityType != "interface" {
+
+							if _, exists := extractors[entityType]; !exists {
+								fmt.Printf("Warning: No extractor for entityType '%s'", entityType)
+							} else {
 								entity := extractors[entityType].Extract(decl, fs, interfaces, pkgName)
 								entities = append(entities, entity)
 							}
