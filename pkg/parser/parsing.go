@@ -1,7 +1,6 @@
 package parser
 
 import (
-	"fmt"
 	"go/ast"
 	"go/parser"
 	"go/token"
@@ -72,17 +71,17 @@ func ParseEntitiesInPackage(pkgPath string) ([]EntityInfo, error) {
 								entityType = "struct"
 							case *ast.InterfaceType:
 								entityType = "interface"
-								ifaceInfo := extractors[entityType].Extract(decl, fs, interfaces, pkgName)
-								ifaceInfo.Package = pkgName
-								interfaces[spec.Name.Name] = ifaceInfo
-								entities = append(entities, ifaceInfo)
+								if _, exists := interfaces[spec.Name.Name]; !exists {
+									ifaceInfo := extractors[entityType].Extract(decl, fs, interfaces, pkgName)
+									ifaceInfo.Package = pkgName
+									interfaces[spec.Name.Name] = ifaceInfo
+									entities = append(entities, ifaceInfo)
+								}
 							default:
 								entityType = "type"
 							}
 
-							if _, exists := extractors[entityType]; !exists {
-								fmt.Printf("Warning: No extractor for entityType '%s'", entityType)
-							} else {
+							if entityType != "interface" {
 								entity := extractors[entityType].Extract(decl, fs, interfaces, pkgName)
 								entities = append(entities, entity)
 							}
