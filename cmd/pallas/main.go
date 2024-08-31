@@ -117,9 +117,9 @@ func markdownToHTML(markdown string) string {
 	htmlString := string(htmlContent)
 
 	// Tailwind CSS classes
-	htmlString = strings.ReplaceAll(htmlString, "<h1>", `<h1 class="text-3xl font-bold mb-4">`)
-	htmlString = strings.ReplaceAll(htmlString, "<h2>", `<h2 class="text-2xl font-bold mb-4">`)
-	htmlString = strings.ReplaceAll(htmlString, "<h3>", `<h3 class="text-xl font-bold mb-4">`)
+	htmlString = strings.ReplaceAll(htmlString, "<h1", `<h1 class="text-3xl font-bold mb-4"`)
+	htmlString = strings.ReplaceAll(htmlString, "<h2", `<h2 class="text-2xl font-bold mb-4"`)
+	htmlString = strings.ReplaceAll(htmlString, "<h3", `<h3 class="text-xl font-bold mb-4"`)
 	htmlString = strings.ReplaceAll(htmlString, "<p>", `<p class="text-gray-700 dark:text-gray-300 mb-4">`)
 	htmlString = strings.ReplaceAll(htmlString, "<ul>", `<ul class="list-disc ml-6 mb-4">`)
 	htmlString = strings.ReplaceAll(htmlString, "<ol>", `<ol class="list-decimal ml-6 mb-4">`)
