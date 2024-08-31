@@ -18,7 +18,7 @@ type PackageLink struct {
 }
 
 // GenerateIndex generates the index.html file listing all the documented packages
-func GenerateIndex(projectPath string, packages []string, outputDir string, docTitle string) error {
+func GenerateIndex(projectPath string, packages []string, outputDir string, docTitle string, readmeContent string) error {
 	// Create the output directory if it doesn't exist
 	if err := os.MkdirAll(outputDir, os.ModePerm); err != nil {
 		return err
@@ -64,9 +64,11 @@ func GenerateIndex(projectPath string, packages []string, outputDir string, docT
 		Title           string
 		GroupedPackages map[string][]PackageLink
 		TotalPackages   int
+		ReadmeContent   string
 	}{
 		Title:           docTitle,
 		GroupedPackages: groupedPackages,
 		TotalPackages:   totalPackages,
+		ReadmeContent:   readmeContent,
 	})
 }
