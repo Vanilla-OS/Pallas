@@ -43,14 +43,39 @@ func GenerateHTML(projectPath string, packagePath string, entities []parser.Enti
 	}
 	defer file.Close()
 
+	// Determine if the package has functions, types, and structs
+	hasFunctions := false
+	hasTypes := false
+	hasStructs := false
+	hasInterfaces := false
+	for _, entity := range entities {
+		if entity.Type == "function" {
+			hasFunctions = true
+		} else if entity.Type == "type" {
+			hasTypes = true
+		} else if entity.Type == "struct" {
+			hasStructs = true
+		} else if entity.Type == "interface" {
+			hasInterfaces = true
+		}
+	}
+
 	data := struct {
-		PackageName string
-		Entities    []parser.EntityInfo
-		Title       string
+		PackageName   string
+		Entities      []parser.EntityInfo
+		Title         string
+		HasFunctions  bool
+		HasTypes      bool
+		HasStructs    bool
+		HasInterfaces bool
 	}{
-		PackageName: relativePackagePath,
-		Entities:    entities,
-		Title:       docTitle,
+		PackageName:   relativePackagePath,
+		Entities:      entities,
+		Title:         docTitle,
+		HasFunctions:  hasFunctions,
+		HasTypes:      hasTypes,
+		HasStructs:    hasStructs,
+		HasInterfaces: hasInterfaces,
 	}
 
 	return tmpl.Execute(file, data)

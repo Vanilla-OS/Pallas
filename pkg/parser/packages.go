@@ -1,11 +1,12 @@
 package parser
 
 import (
-	"os/exec"
-	"strings"
+	"path/filepath"
+
+	"golang.org/x/tools/go/packages"
 )
 
-// GetPackages returns a list of all packages in the project
+// GetPackages returns a list of all package directories in the project
 //
 // Example:
 //
@@ -13,26 +14,27 @@ import (
 //	if err != nil {
 //		log.Fatalf("Error fetching packages: %v", err)
 //	}
-//	for _, pkgPath := range packages {
-//		fmt.Printf("- %s\n", pkgPath)
+//	for _, pkg := range packages {
+//		fmt.Printf("Package: %s\n", pkg)
 //	}
 func GetPackages() ([]string, error) {
-	cmd := exec.Command("go", "list", "-f", "{{.Dir}}", "./...")
-	out, err := cmd.Output()
+	cfg := &packages.Config{
+		Mode: packages.NeedFiles, // We only need the file paths
+	}
+
+	pkgs, err := packages.Load(cfg, "./...")
 	if err != nil {
 		return nil, err
 	}
 
-	// Split the output by newline to get each package path
-	packages := strings.Split(string(out), "\n")
-
-	// Remove any empty strings from the list
-	var cleanedPackages []string
-	for _, pkg := range packages {
-		if pkg != "" {
-			cleanedPackages = append(cleanedPackages, pkg)
+	var packageDirs []string
+	for _, pkg := range pkgs {
+		if len(pkg.GoFiles) > 0 {
+			// To get the package directory, we take the directory of the first Go file
+			dir := filepath.Dir(pkg.GoFiles[0])
+			packageDirs = append(packageDirs, dir)
 		}
 	}
 
-	return cleanedPackages, nil
+	return packageDirs, nil
 }
