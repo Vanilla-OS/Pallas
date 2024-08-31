@@ -40,6 +40,7 @@ To generate documentation for your Go project, navigate to your project's root d
 
 - `--dest <path>`: Specify a custom destination directory for the generated documentation; the default is `./dist` in the current working directory
 - `--title <name>`: Specify a custom title for the documentation, if not provided, the name of the root directory of the project will be used as the title
+- `--readme <path>`: Specify a custom README file to include in the generated documentation; if not provided, the README file in the project root directory will be used. Also note that images without a full URL path will not be displayed in the generated documentation
 
 ### Examples
 

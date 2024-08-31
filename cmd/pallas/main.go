@@ -6,6 +6,7 @@ import (
 	"log"
 	"os"
 	"path/filepath"
+	"regexp"
 	"strings"
 
 	"github.com/russross/blackfriday/v2"
@@ -115,6 +116,7 @@ func markdownToHTML(markdown string) string {
 	htmlContent := blackfriday.Run([]byte(markdown))
 	htmlString := string(htmlContent)
 
+	// Tailwind CSS classes
 	htmlString = strings.ReplaceAll(htmlString, "<h1>", `<h1 class="text-3xl font-bold mb-4">`)
 	htmlString = strings.ReplaceAll(htmlString, "<h2>", `<h2 class="text-2xl font-bold mb-4">`)
 	htmlString = strings.ReplaceAll(htmlString, "<h3>", `<h3 class="text-xl font-bold mb-4">`)
@@ -129,6 +131,16 @@ func markdownToHTML(markdown string) string {
 	htmlString = strings.ReplaceAll(htmlString, "<th>", `<th class="border border-gray-300 bg-gray-100 dark:bg-gray-800 p-2">`)
 	htmlString = strings.ReplaceAll(htmlString, "<td>", `<td class="border border-gray-300 p-2">`)
 	htmlString = strings.ReplaceAll(htmlString, "<a ", `<a class="text-blue-500 hover:underline" target="_blank" `)
+
+	// Fixes
+	re := regexp.MustCompile(`<img[^>]*src="([^"]*)"[^>]*>`)
+	htmlString = re.ReplaceAllStringFunc(htmlString, func(imgTag string) string {
+		matches := re.FindStringSubmatch(imgTag)
+		if len(matches) > 1 && !(strings.HasPrefix(matches[1], "http://") || strings.HasPrefix(matches[1], "https://")) {
+			return ""
+		}
+		return imgTag
+	})
 
 	return htmlString
 }
