@@ -40,6 +40,7 @@ type StructExtractor struct{}
 func (s StructExtractor) Extract(decl ast.Decl, fs *token.FileSet, interfaces map[string]EntityInfo, pkgName string) EntityInfo {
 	spec := decl.(*ast.GenDecl).Specs[0].(*ast.TypeSpec)
 	structType := spec.Type.(*ast.StructType)
+
 	return EntityInfo{
 		Name:        spec.Name.Name,
 		Type:        "struct",
@@ -55,6 +56,7 @@ type InterfaceExtractor struct{}
 func (i InterfaceExtractor) Extract(decl ast.Decl, fs *token.FileSet, interfaces map[string]EntityInfo, pkgName string) EntityInfo {
 	spec := decl.(*ast.GenDecl).Specs[0].(*ast.TypeSpec)
 	interfaceType := spec.Type.(*ast.InterfaceType)
+
 	return EntityInfo{
 		Name:        spec.Name.Name,
 		Type:        "interface",
