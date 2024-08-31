@@ -1,25 +1,32 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
 	<meta charset="UTF-8">
 	<meta name="viewport" content="width=device-width, initial-scale=1.0">
 	<title>{{.Title}} - {{.PackageName}} Documentation</title>
 	<link href="https://cdn.jsdelivr.net/npm/tailwindcss@latest/dist/tailwind.min.css" rel="stylesheet">
-	<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.8.0/styles/atom-one-dark.min.css">
+	<link rel="stylesheet"
+		href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.8.0/styles/atom-one-dark.min.css">
 </head>
+
 <body class="bg-gray-100 text-gray-800 dark:bg-gray-900 dark:text-gray-200 font-sans">
 	<div class="flex flex-col md:flex-row">
 		<!-- Sidebar -->
-		<div id="sidebar" class="w-full md:w-64 bg-gray-900 text-white p-4 flex flex-col h-screen sticky top-0 hidden md:flex">
+		<div id="sidebar"
+			class="w-full md:w-64 bg-gray-900 text-white p-4 flex flex-col h-screen sticky top-0 hidden md:flex">
 			<h1 class="text-2xl font-bold mb-6 text-center">{{.PackageName}}</h1>
-			<a href="index.html" class="text-center mb-4 py-2 px-3 bg-blue-600 rounded-lg hover:bg-blue-500 transition">Back to Index</a>
+			<a href="index.html"
+				class="text-center mb-4 py-2 px-3 bg-blue-600 rounded-lg hover:bg-blue-500 transition">Back to Index</a>
 			<h2 class="text-lg font-semibold mb-4">Entities</h2>
 			<!-- Search bar -->
-			<input type="text" id="function-search" placeholder="Search entities..." class="mb-4 px-2 py-1 rounded text-white bg-white bg-opacity-20 focus:outline-none focus:ring-2 focus:ring-blue-600">
+			<input type="text" id="function-search" placeholder="Search entities..."
+				class="mb-4 px-2 py-1 rounded text-white bg-white bg-opacity-20 focus:outline-none focus:ring-2 focus:ring-blue-600">
 			<ul id="function-list" class="flex-grow overflow-y-auto">
 				{{range .Entities}}
 				<li class="mb-2">
-					<a href="#{{.Name}}" class="block py-1 px-2 rounded hover:bg-gray-700 transition">{{.Name}} <span class="text-sm text-gray-400">({{.Type}})</span></a>
+					<a href="#{{.Name}}" class="block py-1 px-2 rounded hover:bg-gray-700 transition">{{.Name}} <span
+							class="text-sm text-gray-400">({{.Type}})</span></a>
 				</li>
 				{{end}}
 			</ul>
@@ -31,8 +38,10 @@
 		<!-- Hamburger Menu Button for Mobile -->
 		<div id="hamburger" class="fixed bottom-4 right-4 md:hidden">
 			<button id="menu-toggle" class="bg-gray-900 text-white p-3 rounded-full focus:outline-none">
-				<svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-					<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"></path>
+				<svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"
+					xmlns="http://www.w3.org/2000/svg">
+					<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16">
+					</path>
 				</svg>
 			</button>
 		</div>
@@ -41,28 +50,57 @@
 		<div class="flex-grow p-4 overflow-y-auto md:p-8">
 			{{range .Entities}}
 			<div id="{{.Name}}" class="bg-white dark:bg-gray-800 shadow-lg rounded-lg p-6 mb-8">
-				<h2 class="text-2xl font-semibold mb-4">{{.Name}} <span class="text-sm text-gray-400">({{.Type}})</span></h2>
+				<h2 class="text-2xl font-semibold mb-4">
+					{{.Name}} <span class="text-sm text-gray-400">({{.Type}})</span>
+				</h2>
+
 				<p class="mb-4 text-gray-700 dark:text-gray-300">{{.Description}}</p>
+
 				{{if .Example}}
 				<h3 class="font-bold mt-4 mb-2">Example:</h3>
-				<pre class="bg-gray-800 dark:bg-gray-700 p-4 rounded-lg overflow-x-auto"><code class="language-go">{{.Example}}</code></pre>
+				<pre
+					class="bg-gray-800 dark:bg-gray-700 p-4 rounded-lg overflow-x-auto"><code class="language-go">{{.Example}}</code></pre>
 				{{end}}
+
+				{{if .Notes}}
+				<h3 class="font-bold mt-4 mb-2">Notes:</h3>
+				<div class="bg-yellow-100 dark:bg-yellow-700 p-4 rounded-lg">
+					{{.Notes}}
+				</div>
+				{{end}}
+
+				{{if .DeprecationNote}}
+				<h3 class="font-bold mt-4 mb-2">Deprecated:</h3>
+				<div class="bg-red-100 dark:bg-red-700 p-4 rounded-lg">
+					{{.DeprecationNote}}
+				</div>
+				{{end}}
+
 				{{if eq .Type "function"}}
+
+				{{if .Parameters}}
 				<h3 class="font-bold mt-4 mb-2">Parameters:</h3>
 				<ul class="list-disc ml-6 text-gray-700 dark:text-gray-300">
 					{{range .Parameters}}
 					<li>{{.}}</li>
 					{{end}}
 				</ul>
+				{{end}}
+
+				{{if .Returns}}
 				<h3 class="font-bold mt-4 mb-2">Returns:</h3>
 				<ul class="list-disc ml-6 text-gray-700 dark:text-gray-300">
 					{{range .Returns}}
 					<li>{{.}}</li>
 					{{end}}
 				</ul>
+				{{end}}
+
 				<details class="mt-4">
-					<summary class="cursor-pointer font-semibold text-blue-600 dark:text-blue-400">Show/Hide Function Body</summary>
-					<pre class="mt-2 bg-gray-800 dark:bg-gray-700 p-4 rounded-lg overflow-x-auto"><code class="language-go">{{.Body}}</code></pre>
+					<summary class="cursor-pointer font-semibold text-blue-600 dark:text-blue-400">Show/Hide Function
+						Body</summary>
+					<pre
+						class="mt-2 bg-gray-800 dark:bg-gray-700 p-4 rounded-lg overflow-x-auto"><code class="language-go">{{.Body}}</code></pre>
 				</details>
 				{{end}}
 			</div>
@@ -72,16 +110,16 @@
 	<script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.8.0/highlight.min.js"></script>
 	<script>hljs.highlightAll();</script>
 	<script>
-		document.getElementById('function-search').addEventListener('input', function() {
+		document.getElementById('function-search').addEventListener('input', function () {
 			let filter = this.value.toLowerCase();
 			let entities = document.querySelectorAll('#function-list li');
-			entities.forEach(function(entity) {
+			entities.forEach(function (entity) {
 				let text = entity.textContent.toLowerCase();
 				entity.style.display = text.includes(filter) ? '' : 'none';
 			});
 		});
 
-		document.getElementById('menu-toggle').addEventListener('click', function() {
+		document.getElementById('menu-toggle').addEventListener('click', function () {
 			let sidebar = document.getElementById('sidebar');
 			if (sidebar.classList.contains('hidden')) {
 				sidebar.classList.remove('hidden');
@@ -101,15 +139,19 @@
 		::-webkit-scrollbar {
 			width: 8px;
 		}
+
 		::-webkit-scrollbar-track {
 			background: transparent;
 		}
+
 		::-webkit-scrollbar-thumb {
 			background: #888;
 		}
+
 		::-webkit-scrollbar-thumb:hover {
 			background: #555;
 		}
 	</style>
 </body>
+
 </html>

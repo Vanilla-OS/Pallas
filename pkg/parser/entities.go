@@ -12,14 +12,22 @@ import (
 // EntityInfo contains relevant information about each entity in the package
 // (functions, types, interfaces)
 type EntityInfo struct {
-	Name        string
-	Description string
-	Example     string
-	Parameters  []string
-	Returns     []string
-	Body        string
-	Type        string
+	Name            string
+	Description     string
+	Example         string
+	Notes           string
+	DeprecationNote string
+	Parameters      []string
+	Returns         []string
+	Body            string
+	Type            string
 }
+
+// ExampleDeprecationNote is an example of a deprecated function
+//
+// Deprecated:
+// This function is deprecated only for demonstration purposes
+func ExampleDeprecationNote() {}
 
 // ParseEntitiesInPackage parses the entities in a given package and returns
 // a slice of EntityInfo
@@ -38,6 +46,9 @@ type EntityInfo struct {
 //		fmt.Printf("Parameters: %v\n", entity.Parameters)
 //		fmt.Printf("Returns: %v\n", entity.Returns)
 //	}
+//
+// Notes:
+// The package must be a full path to the package directory
 func ParseEntitiesInPackage(pkgPath string) ([]EntityInfo, error) {
 	var entities []EntityInfo
 
@@ -55,13 +66,15 @@ func ParseEntitiesInPackage(pkgPath string) ([]EntityInfo, error) {
 			for _, decl := range file.Decls {
 				switch decl := decl.(type) {
 				case *ast.FuncDecl:
-					description, example := extractDescriptionAndExample(decl.Doc.Text())
+					description, example, notes, deprecationNote := extractDescriptionData(decl.Doc.Text())
 					entity := EntityInfo{
-						Name:        decl.Name.Name,
-						Type:        "function",
-						Body:        extractBody(fs, decl),
-						Description: description,
-						Example:     example,
+						Name:            decl.Name.Name,
+						Type:            "function",
+						Body:            extractBody(fs, decl),
+						Description:     description,
+						Example:         example,
+						Notes:           notes,
+						DeprecationNote: deprecationNote,
 					}
 					entity.Parameters = extractParameters(decl)
 					entity.Returns = extractReturns(decl)
@@ -92,44 +105,83 @@ func ParseEntitiesInPackage(pkgPath string) ([]EntityInfo, error) {
 	return entities, nil
 }
 
-// extractDescriptionAndExample extracts the description and example code from a
+// extractDescriptionData extracts the description and example code from a
 // function's documentation comment
-func extractDescriptionAndExample(doc string) (description string, example string) {
+func extractDescriptionData(doc string) (description string, example string, notes string, deprecationNote string) {
 	lines := strings.Split(doc, "\n")
+
 	var descLines []string
 	var exampleLines []string
+	var notesLines []string
+	var deprecationNoteLines []string
+
 	isExample := false
+	isNotes := false
+	isDeprecationNote := false
 
 	for _, line := range lines {
 		line = strings.TrimSpace(line)
 		if strings.HasPrefix(line, "Example:") {
 			isExample = true
+			isNotes = false
+			isDeprecationNote = false
+			continue
+		}
+		if strings.HasPrefix(line, "Notes:") {
+			isNotes = true
+			isExample = false
+			isDeprecationNote = false
+			continue
+		}
+		if strings.HasPrefix(line, "Deprecated:") {
+			isDeprecationNote = true
+			isExample = false
+			isNotes = false
 			continue
 		}
 
 		if isExample {
 			exampleLines = append(exampleLines, line)
+		} else if isNotes {
+			notesLines = append(notesLines, line)
+		} else if isDeprecationNote {
+			deprecationNoteLines = append(deprecationNoteLines, line)
 		} else {
-			if line != "" {
-				descLines = append(descLines, line)
-			}
+			descLines = append(descLines, line)
 		}
 	}
 
-	// Join the description lines with a <p> tag
+	// Description
 	description = strings.Join(descLines, "</p>\n<p>")
 	description = "<p>" + description + "</p>"
 	description = strings.ReplaceAll(description, "\t", " ")
+	if description == "<p></p>" {
+		description = ""
+	}
 
-	// Clean up the example code
+	// Example
 	example = strings.Join(exampleLines, "\n")
 	example = strings.TrimLeft(example, " \t")
 	example = strings.TrimLeft(example, "\n")
-
-	// Format the example code
 	example = formatExample(example)
 
-	return description, example
+	// Notes
+	notes = strings.Join(notesLines, "</p>\n<p>")
+	notes = "<p>" + notes + "</p>"
+	notes = strings.ReplaceAll(notes, "\t", " ")
+	if notes == "<p></p>" {
+		notes = ""
+	}
+
+	// Deprecation Note
+	deprecationNote = strings.Join(deprecationNoteLines, "</p>\n<p>")
+	deprecationNote = "<p>" + deprecationNote + "</p>"
+	deprecationNote = strings.ReplaceAll(deprecationNote, "\t", " ")
+	if deprecationNote == "<p></p>" {
+		deprecationNote = ""
+	}
+
+	return description, example, notes, deprecationNote
 }
 
 // formatExample formats the example code using the go/format package
@@ -156,6 +208,7 @@ func extractParameters(fn *ast.FuncDecl) []string {
 			params = append(params, name.Name+" "+typeStr)
 		}
 	}
+
 	return params
 }
 
