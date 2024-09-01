@@ -80,7 +80,12 @@ func main() {
 	// Generate HTML for each package
 	for _, pkgPath := range packages {
 		fmt.Printf("Parsing package: %s\n", pkgPath)
-		entities, err := parser.ParseEntitiesInPackage(pkgPath)
+		relativePath, err := filepath.Rel(absProjectPath, pkgPath)
+		if err != nil {
+			log.Fatalf("Error determining relative path: %v", err)
+		}
+
+		entities, err := parser.ParseEntitiesInPackage(projectPath, pkgPath, relativePath)
 		if err != nil {
 			log.Fatalf("Error parsing package %s: %v", pkgPath, err)
 		}

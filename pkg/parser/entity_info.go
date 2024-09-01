@@ -13,13 +13,24 @@ type EntityInfo struct {
 	Body            string
 	Type            string
 	Fields          []FieldInfo
-	Methods         []MethodInfo
+	Methods         []EntityInfo
 	Implements      []ImplementationInfo
 	Package         string
+	PackageURL      string
+	PackagePath     string
+	References      []ReferenceInfo
 
 	// Raw fields
 	DescriptionRaw     string
 	DeprecationNoteRaw string
+}
+
+// ReferenceInfo contains information about references used by an entity
+type ReferenceInfo struct {
+	Name        string
+	Package     string
+	PackageURL  string
+	PackagePath string
 }
 
 // FieldInfo contains relevant information about each field in a struct
@@ -27,20 +38,6 @@ type FieldInfo struct {
 	Name string
 	Type string
 	Tag  string
-}
-
-// MethodInfo contains relevant information about each method in an interface
-// Notes:
-// Should probably switch to using EntityInfo for this as well
-type MethodInfo struct {
-	Name            string
-	Description     string
-	Parameters      []string
-	Returns         []string
-	Body            string
-	Example         string
-	Notes           string
-	DeprecationNote string
 }
 
 // ImplementationInfo contains information about an implemented interface

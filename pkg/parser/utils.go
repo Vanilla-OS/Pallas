@@ -9,11 +9,11 @@ import (
 )
 
 // extractMethods extracts methods from an interface declaration
-func extractMethods(interfaceType *ast.InterfaceType) []MethodInfo {
-	var methods []MethodInfo
+func extractMethods(interfaceType *ast.InterfaceType) []EntityInfo {
+	var methods []EntityInfo
 	for _, field := range interfaceType.Methods.List {
 		if funcType, ok := field.Type.(*ast.FuncType); ok {
-			methodInfo := MethodInfo{
+			methodInfo := EntityInfo{
 				Name:       field.Names[0].Name,
 				Parameters: extractParameters(funcType.Params),
 				Returns:    extractParameters(funcType.Results),
@@ -204,10 +204,46 @@ func formatExpr(expr ast.Expr) string {
 	return out.String()
 }
 
-// extractComment extracts the comment text from a comment group
-func extractComment(doc *ast.CommentGroup) string {
-	if doc == nil {
-		return ""
+// findReferences finds references to other entities in an entity
+func findReferences(entity EntityInfo, entityIndex map[string]EntityInfo) []ReferenceInfo {
+	var references []ReferenceInfo
+
+	// Check for parameters
+	for _, param := range entity.Parameters {
+		paramType := strings.Split(param, " ")[1]
+		if refEntity, found := entityIndex[entity.Package+"."+paramType]; found {
+			references = append(references, ReferenceInfo{
+				Name:        paramType,
+				Package:     refEntity.Package,
+				PackageURL:  refEntity.PackageURL,
+				PackagePath: refEntity.PackagePath,
+			})
+		}
 	}
-	return strings.TrimSpace(doc.Text())
+
+	// Check for returns
+	for _, ret := range entity.Returns {
+		if refEntity, found := entityIndex[entity.Package+"."+ret]; found {
+			references = append(references, ReferenceInfo{
+				Name:        ret,
+				Package:     refEntity.Package,
+				PackageURL:  refEntity.PackageURL,
+				PackagePath: refEntity.PackagePath,
+			})
+		}
+	}
+
+	// Check for fields
+	for _, field := range entity.Fields {
+		if refEntity, found := entityIndex[entity.Package+"."+field.Type]; found {
+			references = append(references, ReferenceInfo{
+				Name:        field.Type,
+				Package:     refEntity.Package,
+				PackageURL:  refEntity.PackageURL,
+				PackagePath: refEntity.PackagePath,
+			})
+		}
+	}
+
+	return references
 }

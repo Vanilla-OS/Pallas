@@ -206,6 +206,18 @@
 				</ul>
 				{{end}}
 
+				{{if .References}}
+				<h3 class="font-bold mt-4 mb-2">References:</h3>
+				<ul class="list-disc ml-6 text-gray-700 dark:text-gray-300">
+					{{range .References}}
+					<li>
+						<a href="{{.PackageURL}}.html#{{.Name}}" class="hover:underline">{{.Name}}</a>
+						<span class="text-sm text-gray-500">({{.PackagePath}})</span>
+					</li>
+					{{end}}
+				</ul>
+				{{end}}
+
 				<details class="mt-4">
 					<summary class="cursor-pointer font-semibold text-blue-600 dark:text-blue-400">Show/Hide Function
 						Body</summary>
@@ -290,6 +302,18 @@
 						</div>
 						{{end}}
 
+						{{if .References}}
+						<h3 class="font-bold mt-4 mb-2">References:</h3>
+						<ul class="list-disc ml-6 text-gray-700 dark:text-gray-300">
+							{{range .References}}
+							<li>
+								<a href="{{.PackageURL}}.html#{{.Name}}" class="hover:underline">{{.Name}}</a>
+								<span class="text-sm text-gray-500">({{.PackagePath}})</span>
+							</li>
+							{{end}}
+						</ul>
+						{{end}}
+
 						{{if .Body}}
 						<hr class="my-2">
 						<details class="mt-4">
@@ -304,7 +328,6 @@
 					{{end}}
 				</div>
 				{{end}}
-
 
 				{{end}}
 

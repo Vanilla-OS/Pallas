@@ -4,6 +4,8 @@ import (
 	"go/ast"
 	"go/parser"
 	"go/token"
+	"os"
+	"strings"
 )
 
 // ParseEntitiesInPackage parses the entities in a given package and returns
@@ -11,7 +13,7 @@ import (
 //
 // Example:
 //
-//	entities, err := parser.ParseEntitiesInPackage("github.com/gophercises/quiz")
+//	entities, err := parser.ParseEntitiesInPackage("/home/me/myproject/pkg/mypackage")
 //	if err != nil {
 //		log.Fatalf("Error parsing entities: %v", err)
 //	}
@@ -24,10 +26,11 @@ import (
 //
 // Notes:
 // The package must be a full path to the package directory
-func ParseEntitiesInPackage(pkgPath string) ([]EntityInfo, error) {
+func ParseEntitiesInPackage(projectPath string, pkgPath string, relativePath string) ([]EntityInfo, error) {
 	var entities []EntityInfo
 	var interfaces = make(map[string]EntityInfo)
-	var methodsByType = make(map[string][]MethodInfo)
+	var methodsByType = make(map[string][]EntityInfo)
+	var entityIndex = make(map[string]EntityInfo)
 
 	fs := token.NewFileSet()
 	pkgs, err := parser.ParseDir(fs, pkgPath, nil, parser.ParseComments)
@@ -35,63 +38,64 @@ func ParseEntitiesInPackage(pkgPath string) ([]EntityInfo, error) {
 		return nil, err
 	}
 
+	var pkgName string
+	var pkg *ast.Package
+	for k, v := range pkgs {
+		pkgName = k
+		pkg = v
+		break
+	}
+
 	extractors := map[string]EntityExtractor{
 		"function":  FunctionExtractor{},
+		"method":    MethodExtractor{},
 		"struct":    StructExtractor{},
 		"interface": InterfaceExtractor{},
 		"type":      TypeExtractor{},
 	}
 
-	// here we parse all entities, store interfaces, and collect methods
-	for pkgName, pkg := range pkgs {
-		for _, file := range pkg.Files {
-			for _, decl := range file.Decls {
-				switch decl := decl.(type) {
-				case *ast.FuncDecl:
-					// Check if the function is a method
-					if decl.Recv != nil {
-						receiverType := formatExpr(decl.Recv.List[0].Type)
-						descriptionData := extractDescriptionData(decl.Doc.Text())
-						method := MethodInfo{
-							Name:            decl.Name.Name,
-							Description:     descriptionData.Description,
-							Parameters:      extractParameters(decl.Type.Params),
-							Returns:         extractParameters(decl.Type.Results),
-							Body:            extractBody(fs, decl),
-							Example:         descriptionData.Example,
-							Notes:           descriptionData.Notes,
-							DeprecationNote: descriptionData.DeprecationNote,
+	// Replace slashes with hyphens to ensure unique filenames
+	url := strings.ReplaceAll(relativePath, string(os.PathSeparator), "-")
+
+	// here we parse all entities types
+	for _, file := range pkg.Files {
+		for _, decl := range file.Decls {
+			switch decl := decl.(type) {
+			case *ast.FuncDecl:
+				if decl.Recv != nil {
+					receiverType := formatExpr(decl.Recv.List[0].Type)
+					method := extractors["method"].Extract(decl, fs, interfaces, pkgName, relativePath, url)
+					methodsByType[receiverType] = append(methodsByType[receiverType], method)
+				} else {
+					entity := extractors["function"].Extract(decl, fs, interfaces, pkgName, relativePath, url)
+					entities = append(entities, entity)
+					entityIndex[pkgName+"."+entity.Name] = entity
+				}
+			case *ast.GenDecl:
+				for _, spec := range decl.Specs {
+					switch spec := spec.(type) {
+					case *ast.TypeSpec:
+						var entityType string
+						switch spec.Type.(type) {
+						case *ast.StructType:
+							entityType = "struct"
+						case *ast.InterfaceType:
+							entityType = "interface"
+							if _, exists := interfaces[spec.Name.Name]; !exists {
+								ifaceInfo := extractors[entityType].Extract(decl, fs, interfaces, pkgName, relativePath, url)
+								ifaceInfo.Package = pkgName
+								interfaces[spec.Name.Name] = ifaceInfo
+								entities = append(entities, ifaceInfo)
+								entityIndex[pkgName+"."+ifaceInfo.Name] = ifaceInfo
+							}
+						default:
+							entityType = "type"
 						}
 
-						methodsByType[receiverType] = append(methodsByType[receiverType], method)
-					} else {
-						entities = append(entities, extractors["function"].Extract(decl, fs, interfaces, pkgName))
-					}
-
-				case *ast.GenDecl:
-					for _, spec := range decl.Specs {
-						switch spec := spec.(type) {
-						case *ast.TypeSpec:
-							var entityType string
-							switch spec.Type.(type) {
-							case *ast.StructType:
-								entityType = "struct"
-							case *ast.InterfaceType:
-								entityType = "interface"
-								if _, exists := interfaces[spec.Name.Name]; !exists {
-									ifaceInfo := extractors[entityType].Extract(decl, fs, interfaces, pkgName)
-									ifaceInfo.Package = pkgName
-									interfaces[spec.Name.Name] = ifaceInfo
-									entities = append(entities, ifaceInfo)
-								}
-							default:
-								entityType = "type"
-							}
-
-							if entityType != "interface" {
-								entity := extractors[entityType].Extract(decl, fs, interfaces, pkgName)
-								entities = append(entities, entity)
-							}
+						if entityType != "interface" {
+							entity := extractors[entityType].Extract(decl, fs, interfaces, pkgName, relativePath, url)
+							entities = append(entities, entity)
+							entityIndex[pkgName+"."+entity.Name] = entity
 						}
 					}
 				}
@@ -99,10 +103,14 @@ func ParseEntitiesInPackage(pkgPath string) ([]EntityInfo, error) {
 		}
 	}
 
-	// Here we associate methods with structs and resolve interfaces implementations
+	// Here we associate methods with structs, resolve interfaces
+	// implementations and find references for each entity
 	for i, entity := range entities {
-		if entity.Type == "struct" {
+		references := findReferences(entity, entityIndex)
+		entity.References = references
 
+		// if the entity is a struct, we associate methods with it
+		if entity.Type == "struct" {
 			receiverName := entity.Name
 			if methods, ok := methodsByType[receiverName]; ok {
 				entity.Methods = append(entity.Methods, methods...)
@@ -111,8 +119,15 @@ func ParseEntitiesInPackage(pkgPath string) ([]EntityInfo, error) {
 			}
 
 			entity.Implements = findImplementedInterfaces(entity, interfaces)
-			entities[i] = entity
+
+			// and here we find references for each method if any
+			for j, method := range entity.Methods {
+				methodReferences := findReferences(method, entityIndex)
+				entity.Methods[j].References = methodReferences
+			}
 		}
+
+		entities[i] = entity
 	}
 
 	return entities, nil
@@ -136,7 +151,7 @@ func findImplementedInterfaces(entity EntityInfo, interfaces map[string]EntityIn
 
 // implementsInterface checks if a struct implements a given interface
 func implementsInterface(entity EntityInfo, iface EntityInfo) bool {
-	methodSet := make(map[string]MethodInfo)
+	methodSet := make(map[string]EntityInfo)
 	for _, method := range entity.Methods {
 		methodSet[method.Name] = method
 	}
@@ -155,7 +170,7 @@ func implementsInterface(entity EntityInfo, iface EntityInfo) bool {
 }
 
 // methodsMatch checks if the parameters and return types of two methods match
-func methodsMatch(ifaceMethod, structMethod MethodInfo) bool {
+func methodsMatch(ifaceMethod, structMethod EntityInfo) bool {
 	if len(ifaceMethod.Parameters) != len(structMethod.Parameters) ||
 		len(ifaceMethod.Returns) != len(structMethod.Returns) {
 		return false
