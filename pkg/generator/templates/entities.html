@@ -59,10 +59,23 @@
 					<ul id="structs" class="mt-2">
 						{{range .Entities}}
 						{{if eq .Type "struct"}}
+						{{ $structName := .Name }}
 						<li class="mb-2">
 							<a href="#{{.Name}}"
 								title="{{if .DescriptionRaw}}{{.DescriptionRaw}}{{else if .DeprecationNoteRaw}}Deprecated: {{.DeprecationNoteRaw}}{{else}}No description{{end}}"
 								class="block py-1 px-2 rounded hover:bg-gray-700 transition">{{.Name}}</a>
+							{{if .Methods}}
+							<ul class="ml-4 mt-1">
+								{{range .Methods}}
+								<li class="mb-1">
+									<a href="#{{$structName}}.{{.Name}}"
+										class="block py-1 px-2 rounded hover:bg-gray-600 transition">
+										{{.Name}}
+									</a>
+								</li>
+								{{end}}
+							</ul>
+							{{end}}
 						</li>
 						{{end}}
 						{{end}}
@@ -202,6 +215,7 @@
 				{{end}}
 
 				{{if eq .Type "struct"}}
+				{{ $structName := .Name }}
 
 				{{if .Fields}}
 				<h3 class="font-bold mt-4 mb-2">Fields:</h3>
@@ -224,16 +238,15 @@
 				</ul>
 				{{end}}
 
-				{{end}}
-
-				{{if eq .Type "interface"}}
-
 				{{if .Methods}}
 				<h3 class="font-bold mt-4 mb-2">Methods:</h3>
-				<div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+				<div class="flex gap-2 flex-col">
 					{{range .Methods}}
-					<div class="bg-gray-100 dark:bg-gray-700 p-4 rounded-lg">
-						<h4 class="font-semibold">{{.Name}}</h4>
+					<div class=" bg-gray-100 dark:bg-gray-700 p-4 rounded-lg">
+						<h4 class="font-semibold" id="{{$structName}}.{{.Name}}">{{.Name}}</h4>
+						<p class="mb-4 text-gray-700 dark:text-gray-300">{{.Description}}</p>
+
+						{{if .Parameters}}
 						<hr class="my-2">
 						<b class="text-gray-500 dark:text-gray-400">Parameters:</b>
 						<ul class="list-disc ml-6 text-gray-700 dark:text-gray-300">
@@ -241,6 +254,9 @@
 							<li>{{.}}</li>
 							{{end}}
 						</ul>
+						{{end}}
+
+						{{if .Returns}}
 						<hr class="my-2">
 						<b class="text-gray-500 dark:text-gray-400">Returns:</b>
 						<ul class="list-disc ml-6 text-gray-700 dark:text-gray-300">
@@ -252,6 +268,77 @@
 							{{end}}
 							{{end}}
 						</ul>
+						{{end}}
+
+						{{if .Example}}
+						<h3 class="font-bold mt-4 mb-2">Example:</h3>
+						<pre
+							class="bg-gray-800 dark:bg-gray-700 p-4 rounded-lg overflow-x-auto"><code class="language-go">{{.Example}}</code></pre>
+						{{end}}
+
+						{{if .Notes}}
+						<h3 class="font-bold mt-4 mb-2">Notes:</h3>
+						<div class="bg-yellow-100 dark:bg-yellow-700 p-4 rounded-lg">
+							{{.Notes}}
+						</div>
+						{{end}}
+
+						{{if .DeprecationNote}}
+						<h3 class="font-bold mt-4 mb-2">Deprecated:</h3>
+						<div class="bg-red-100 dark:bg-red-700 p-4 rounded-lg">
+							{{.DeprecationNote}}
+						</div>
+						{{end}}
+
+						{{if .Body}}
+						<hr class="my-2">
+						<details class="mt-4">
+							<summary class="cursor-pointer font-semibold text-blue-600 dark:text-blue-400">Show/Hide
+								Method Body</summary>
+							<pre
+								class="mt-2 bg-gray-800 dark:bg-gray-700 p-4 rounded-lg overflow-x-auto"><code class="language-go">{{.Body}}</code></pre>
+						</details>
+						{{end}}
+
+					</div>
+					{{end}}
+				</div>
+				{{end}}
+
+
+				{{end}}
+
+				{{if eq .Type "interface"}}
+
+				{{if .Methods}}
+				<h3 class="font-bold mt-4 mb-2">Methods:</h3>
+				<div class="flex gap-2 flex-col">
+					{{range .Methods}}
+					<div class="bg-gray-100 dark:bg-gray-700 p-4 rounded-lg">
+						<h4 class="font-semibold">{{.Name}}</h4>
+						{{if .Parameters}}
+						<hr class="my-2">
+						<b class="text-gray-500 dark:text-gray-400">Parameters:</b>
+						<ul class="list-disc ml-6 text-gray-700 dark:text-gray-300">
+							{{range .Parameters}}
+							<li>{{.}}</li>
+							{{end}}
+						</ul>
+						{{end}}
+
+						{{if .Returns}}
+						<hr class="my-2">
+						<b class="text-gray-500 dark:text-gray-400">Returns:</b>
+						<ul class="list-disc ml-6 text-gray-700 dark:text-gray-300">
+							{{range .Returns}}
+							{{if eq . "error"}}
+							<li><span class="bg-red-500 text-white rounded px-1">error</span></li>
+							{{else}}
+							<li>{{.}}</li>
+							{{end}}
+							{{end}}
+						</ul>
+						{{end}}
 					</div>
 					{{end}}
 				</div>

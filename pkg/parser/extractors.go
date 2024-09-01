@@ -16,6 +16,7 @@ type FunctionExtractor struct{}
 func (f FunctionExtractor) Extract(decl ast.Decl, fs *token.FileSet, interfaces map[string]EntityInfo, pkgName string) EntityInfo {
 	funcDecl := decl.(*ast.FuncDecl)
 	descriptionData := extractDescriptionData(funcDecl.Doc.Text())
+
 	return EntityInfo{
 		Name:            funcDecl.Name.Name,
 		Type:            "function",
@@ -41,12 +42,20 @@ func (s StructExtractor) Extract(decl ast.Decl, fs *token.FileSet, interfaces ma
 	spec := decl.(*ast.GenDecl).Specs[0].(*ast.TypeSpec)
 	structType := spec.Type.(*ast.StructType)
 
+	descriptionData := extractDescriptionData(decl.(*ast.GenDecl).Doc.Text())
+
 	return EntityInfo{
-		Name:        spec.Name.Name,
-		Type:        "struct",
-		Description: extractComment(decl.(*ast.GenDecl).Doc),
-		Fields:      extractFields(structType),
-		Package:     pkgName,
+		Name:            spec.Name.Name,
+		Type:            "struct",
+		Description:     descriptionData.Description,
+		Notes:           descriptionData.Notes,
+		DeprecationNote: descriptionData.DeprecationNote,
+		Fields:          extractFields(structType),
+		Package:         pkgName,
+
+		// Raw fields
+		DescriptionRaw:     descriptionData.DescriptionRaw,
+		DeprecationNoteRaw: descriptionData.DeprecationNoteRaw,
 	}
 }
 
@@ -57,12 +66,20 @@ func (i InterfaceExtractor) Extract(decl ast.Decl, fs *token.FileSet, interfaces
 	spec := decl.(*ast.GenDecl).Specs[0].(*ast.TypeSpec)
 	interfaceType := spec.Type.(*ast.InterfaceType)
 
+	descriptionData := extractDescriptionData(decl.(*ast.GenDecl).Doc.Text())
+
 	return EntityInfo{
-		Name:        spec.Name.Name,
-		Type:        "interface",
-		Description: extractComment(decl.(*ast.GenDecl).Doc),
-		Methods:     extractMethods(interfaceType),
-		Package:     pkgName,
+		Name:            spec.Name.Name,
+		Description:     descriptionData.Description,
+		Notes:           descriptionData.Notes,
+		DeprecationNote: descriptionData.DeprecationNote,
+		Type:            "interface",
+		Methods:         extractMethods(interfaceType),
+		Package:         pkgName,
+
+		// Raw fields
+		DescriptionRaw:     descriptionData.DescriptionRaw,
+		DeprecationNoteRaw: descriptionData.DeprecationNoteRaw,
 	}
 }
 
@@ -73,11 +90,19 @@ func (t TypeExtractor) Extract(decl ast.Decl, fs *token.FileSet, interfaces map[
 	spec := decl.(*ast.GenDecl).Specs[0].(*ast.TypeSpec)
 	typeExpr := formatExpr(spec.Type)
 
+	descriptionData := extractDescriptionData(decl.(*ast.GenDecl).Doc.Text())
+
 	return EntityInfo{
-		Name:        spec.Name.Name,
-		Type:        "type",
-		Description: extractComment(decl.(*ast.GenDecl).Doc),
-		Body:        typeExpr,
-		Package:     pkgName,
+		Name:            spec.Name.Name,
+		Description:     descriptionData.Description,
+		Notes:           descriptionData.Notes,
+		DeprecationNote: descriptionData.DeprecationNote,
+		Type:            "type",
+		Body:            typeExpr,
+		Package:         pkgName,
+
+		// Raw fields
+		DescriptionRaw:     descriptionData.DescriptionRaw,
+		DeprecationNoteRaw: descriptionData.DeprecationNoteRaw,
 	}
 }

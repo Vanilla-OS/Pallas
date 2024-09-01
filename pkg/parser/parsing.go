@@ -51,11 +51,18 @@ func ParseEntitiesInPackage(pkgPath string) ([]EntityInfo, error) {
 					// Check if the function is a method
 					if decl.Recv != nil {
 						receiverType := formatExpr(decl.Recv.List[0].Type)
+						descriptionData := extractDescriptionData(decl.Doc.Text())
 						method := MethodInfo{
-							Name:       decl.Name.Name,
-							Parameters: extractParameters(decl.Type.Params),
-							Returns:    extractParameters(decl.Type.Results),
+							Name:            decl.Name.Name,
+							Description:     descriptionData.Description,
+							Parameters:      extractParameters(decl.Type.Params),
+							Returns:         extractParameters(decl.Type.Results),
+							Body:            extractBody(fs, decl),
+							Example:         descriptionData.Example,
+							Notes:           descriptionData.Notes,
+							DeprecationNote: descriptionData.DeprecationNote,
 						}
+
 						methodsByType[receiverType] = append(methodsByType[receiverType], method)
 					} else {
 						entities = append(entities, extractors["function"].Extract(decl, fs, interfaces, pkgName))
@@ -95,9 +102,14 @@ func ParseEntitiesInPackage(pkgPath string) ([]EntityInfo, error) {
 	// Here we associate methods with structs and resolve interfaces implementations
 	for i, entity := range entities {
 		if entity.Type == "struct" {
-			if methods, ok := methodsByType[entity.Name]; ok {
+
+			receiverName := entity.Name
+			if methods, ok := methodsByType[receiverName]; ok {
+				entity.Methods = append(entity.Methods, methods...)
+			} else if methods, ok := methodsByType["*"+receiverName]; ok {
 				entity.Methods = append(entity.Methods, methods...)
 			}
+
 			entity.Implements = findImplementedInterfaces(entity, interfaces)
 			entities[i] = entity
 		}

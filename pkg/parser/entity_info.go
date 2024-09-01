@@ -30,10 +30,17 @@ type FieldInfo struct {
 }
 
 // MethodInfo contains relevant information about each method in an interface
+// Notes:
+// Should probably switch to using EntityInfo for this as well
 type MethodInfo struct {
-	Name       string
-	Parameters []string
-	Returns    []string
+	Name            string
+	Description     string
+	Parameters      []string
+	Returns         []string
+	Body            string
+	Example         string
+	Notes           string
+	DeprecationNote string
 }
 
 // ImplementationInfo contains information about an implemented interface
