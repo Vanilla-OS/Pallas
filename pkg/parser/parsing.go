@@ -26,8 +26,9 @@ import (
 //
 // Notes:
 // The package must be a full path to the package directory
-func ParseEntitiesInPackage(projectPath string, pkgPath string, relativePath string) ([]EntityInfo, error) {
+func ParseEntitiesInPackage(projectPath string, pkgPath string, relativePath string) ([]EntityInfo, []ImportInfo, error) {
 	var entities []EntityInfo
+	var imports []ImportInfo
 	var interfaces = make(map[string]EntityInfo)
 	var methodsByType = make(map[string][]EntityInfo)
 	var entityIndex = make(map[string]EntityInfo)
@@ -35,7 +36,7 @@ func ParseEntitiesInPackage(projectPath string, pkgPath string, relativePath str
 	fs := token.NewFileSet()
 	pkgs, err := parser.ParseDir(fs, pkgPath, nil, parser.ParseComments)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 
 	var pkgName string
@@ -57,8 +58,28 @@ func ParseEntitiesInPackage(projectPath string, pkgPath string, relativePath str
 	// Replace slashes with hyphens to ensure unique filenames
 	url := strings.ReplaceAll(relativePath, string(os.PathSeparator), "-")
 
-	// here we parse all entities types
 	for _, file := range pkg.Files {
+
+		// here we parse all imports
+		for _, imp := range file.Imports {
+			importPath := strings.Trim(imp.Path.Value, `"`)
+			var importName string
+			if imp.Name != nil {
+				importName = imp.Name.Name
+			} else {
+				importName = ""
+			}
+
+			importURL := strings.ReplaceAll(importPath, "/", "-")
+
+			imports = append(imports, ImportInfo{
+				Path:  importPath,
+				URL:   importURL,
+				Alias: importName,
+			})
+		}
+
+		// here we parse all entities types
 		for _, decl := range file.Decls {
 			switch decl := decl.(type) {
 			case *ast.FuncDecl:
@@ -130,7 +151,7 @@ func ParseEntitiesInPackage(projectPath string, pkgPath string, relativePath str
 		entities[i] = entity
 	}
 
-	return entities, nil
+	return entities, imports, nil
 }
 
 // findImplementedInterfaces checks which interfaces are implemented by a struct

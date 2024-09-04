@@ -85,12 +85,12 @@ func main() {
 			log.Fatalf("Error determining relative path: %v", err)
 		}
 
-		entities, err := parser.ParseEntitiesInPackage(projectPath, pkgPath, relativePath)
+		entities, imports, err := parser.ParseEntitiesInPackage(projectPath, pkgPath, relativePath)
 		if err != nil {
 			log.Fatalf("Error parsing package %s: %v", pkgPath, err)
 		}
 
-		err = generator.GenerateHTML(absProjectPath, pkgPath, entities, outputDir, docTitle)
+		err = generator.GenerateHTML(absProjectPath, pkgPath, entities, imports, outputDir, docTitle)
 		if err != nil {
 			log.Fatalf("Error generating HTML for package %s: %v", pkgPath, err)
 		}

@@ -45,3 +45,10 @@ type ImplementationInfo struct {
 	InterfaceName string
 	Package       string
 }
+
+// ImportInfo contains information about an imported package
+type ImportInfo struct {
+	URL   string
+	Path  string
+	Alias string
+}

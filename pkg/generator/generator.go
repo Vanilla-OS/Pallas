@@ -15,7 +15,7 @@ import (
 var htmlTemplate string
 
 // GenerateHTML generates an HTML file for the given package and entities
-func GenerateHTML(projectPath string, packagePath string, entities []parser.EntityInfo, outputDir string, docTitle string) error {
+func GenerateHTML(projectPath string, packagePath string, entities []parser.EntityInfo, imports []parser.ImportInfo, outputDir string, docTitle string) error {
 	// Create the output directory if it doesn't exist
 	if err := os.MkdirAll(outputDir, os.ModePerm); err != nil {
 		return fmt.Errorf("error creating output directory: %v", err)
@@ -48,6 +48,7 @@ func GenerateHTML(projectPath string, packagePath string, entities []parser.Enti
 	hasTypes := false
 	hasStructs := false
 	hasInterfaces := false
+	hasImports := len(imports) > 0
 	for _, entity := range entities {
 		if entity.Type == "function" {
 			hasFunctions = true
@@ -63,19 +64,23 @@ func GenerateHTML(projectPath string, packagePath string, entities []parser.Enti
 	data := struct {
 		PackageName   string
 		Entities      []parser.EntityInfo
+		Imports       []parser.ImportInfo
 		Title         string
 		HasFunctions  bool
 		HasTypes      bool
 		HasStructs    bool
 		HasInterfaces bool
+		HasImports    bool
 	}{
 		PackageName:   relativePackagePath,
 		Entities:      entities,
+		Imports:       imports,
 		Title:         docTitle,
 		HasFunctions:  hasFunctions,
 		HasTypes:      hasTypes,
 		HasStructs:    hasStructs,
 		HasInterfaces: hasInterfaces,
+		HasImports:    hasImports,
 	}
 
 	return tmpl.Execute(file, data)
