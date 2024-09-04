@@ -8,6 +8,7 @@
 	<link href="https://cdn.jsdelivr.net/npm/tailwindcss@latest/dist/tailwind.min.css" rel="stylesheet">
 	<link rel="stylesheet"
 		href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.8.0/styles/atom-one-dark.min.css">
+	<link rel="stylesheet" href="static/style.css">
 </head>
 
 <body class="bg-gray-100 text-gray-800 dark:bg-gray-900 dark:text-gray-200 font-sans">
@@ -395,6 +396,34 @@
 
 			</div>
 			{{end}}
+
+			{{range .Imports}}
+			<div id="{{.URL}}" class="bg-white dark:bg-gray-800 shadow-lg rounded-lg p-6 mb-8">
+				<h2 class="text-2xl font-semibold mb-4">
+					{{.Path}} <span class="text-sm bg-gray-500 text-white rounded-full px-2 py-1">import</span>
+				</h2>
+
+				<h3 class="font-bold mt-4 mb-2">Import example:</h3>
+				<pre
+					class="bg-gray-800 dark:bg-gray-700 p-4 rounded-lg overflow-x-auto"><code class="language-go">import "{{.Path}}"</code></pre>
+
+				{{if .Alias}}
+				<h3 class="font-bold mt-4 mb-2">Imported as:</h3>
+				<p>{{.Alias}}</p>
+				{{end}}
+
+				{{if .Comment}}
+				<h3 class="font-bold mt-4 mb-2">Comment:</h3>
+				<p>{{.Comment}}</p>
+				{{end}}
+
+				{{if .Doc}}
+				<h3 class="font-bold mt-4 mb-2">Documentation:</h3>
+				<p>{{.Doc}}</p>
+				{{end}}
+			</div>
+			{{end}}
+
 		</div>
 	</div>
 	<script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.8.0/highlight.min.js"></script>
@@ -459,30 +488,6 @@
 			}
 		}
 	</script>
-	<style>
-		/* Highlight.js */
-		.hljs {
-			background: none !important;
-			padding: 0 !important;
-		}
-
-		/* Scrollbar */
-		::-webkit-scrollbar {
-			display: none;
-		}
-
-		::-webkit-scrollbar-track {
-			background: transparent;
-		}
-
-		::-webkit-scrollbar-thumb {
-			background: #888;
-		}
-
-		::-webkit-scrollbar-thumb:hover {
-			background: #555;
-		}
-	</style>
 </body>
 
 </html>

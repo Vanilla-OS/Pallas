@@ -48,7 +48,9 @@ type ImplementationInfo struct {
 
 // ImportInfo contains information about an imported package
 type ImportInfo struct {
-	URL   string
-	Path  string
-	Alias string
+	URL     string
+	Path    string
+	Alias   string
+	Doc     string
+	Comment string
 }

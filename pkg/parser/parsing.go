@@ -63,19 +63,34 @@ func ParseEntitiesInPackage(projectPath string, pkgPath string, relativePath str
 		// here we parse all imports
 		for _, imp := range file.Imports {
 			importPath := strings.Trim(imp.Path.Value, `"`)
+
 			var importName string
 			if imp.Name != nil {
-				importName = imp.Name.Name
+				if imp.Name.Name == "_" {
+					importName = "Anonymous Import"
+				} else {
+					importName = imp.Name.Name
+				}
 			} else {
 				importName = ""
 			}
 
 			importURL := strings.ReplaceAll(importPath, "/", "-")
+			doc := ""
+			comment := ""
+			if imp.Doc != nil {
+				doc = imp.Doc.Text()
+			}
+			if imp.Comment != nil {
+				comment = imp.Comment.Text()
+			}
 
 			imports = append(imports, ImportInfo{
-				Path:  importPath,
-				URL:   importURL,
-				Alias: importName,
+				Path:    importPath,
+				URL:     importURL,
+				Alias:   importName,
+				Doc:     doc,
+				Comment: comment,
 			})
 		}
 
