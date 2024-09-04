@@ -4,6 +4,7 @@ import (
 	"go/ast"
 	"go/format"
 	"go/token"
+	"html"
 	"os"
 	"strings"
 )
@@ -189,10 +190,16 @@ func extractBody(fs *token.FileSet, fn *ast.FuncDecl) string {
 	if fn.Body == nil {
 		return ""
 	}
+
 	start := fs.Position(fn.Body.Pos()).Offset
 	end := fs.Position(fn.Body.End()).Offset
 	fileContent, _ := os.ReadFile(fs.File(fn.Body.Pos()).Name())
-	return string(fileContent[start:end])
+	body := string(fileContent[start:end])
+
+	// before returning we have to escape possible html snippets in it since
+	// those snippets are rendered by highlighting.js which has an issue with
+	// unescaped html snippets (yeah even if inside a Go string, what a pleasure)
+	return html.EscapeString(body)
 }
 
 // formatExpr formats an expression using the go/format package
