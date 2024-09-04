@@ -98,6 +98,11 @@ func main() {
 		fmt.Printf("HTML generated for package: %s\n", pkgPath)
 	}
 
+	// Move static assets to the output directory
+	if err := generator.CopyStaticAssets(outputDir); err != nil {
+		log.Fatalf("Error copying static assets: %v", err)
+	}
+
 	// Generate the index.html file
 	packageNamesFull := make([]string, 0, len(packages))
 	for _, pkgPath := range packages {

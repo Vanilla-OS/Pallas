@@ -1,0 +1,22 @@
+/* Highlight.js */
+.hljs {
+    background: none !important;
+    padding: 0 !important;
+}
+
+/* Scrollbar */
+::-webkit-scrollbar {
+    display: none;
+}
+
+::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+    background: #888;
+}
+
+::-webkit-scrollbar-thumb:hover {
+    background: #555;
+}

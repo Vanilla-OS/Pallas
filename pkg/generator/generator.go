@@ -1,7 +1,7 @@
 package generator
 
 import (
-	_ "embed"
+	"embed"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -13,6 +13,9 @@ import (
 
 //go:embed templates/entities.html
 var htmlTemplate string
+
+//go:embed templates/static/*
+var staticAssets embed.FS
 
 // GenerateHTML generates an HTML file for the given package and entities
 func GenerateHTML(projectPath string, packagePath string, entities []parser.EntityInfo, imports []parser.ImportInfo, outputDir string, docTitle string) error {
