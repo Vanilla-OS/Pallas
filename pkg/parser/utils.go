@@ -56,6 +56,7 @@ type DescriptionData struct {
 	Example         string
 	Notes           string
 	DeprecationNote string
+	Returns         string
 
 	// Raw fields
 	DescriptionRaw     string
@@ -71,15 +72,18 @@ func extractDescriptionData(doc string) DescriptionData {
 	var exampleLines []string
 	var notesLines []string
 	var deprecationNoteLines []string
+	var returnsLines []string
 
 	var description string
 	var example string
 	var notes string
 	var deprecationNote string
+	var returns string
 
 	isExample := false
 	isNotes := false
 	isDeprecationNote := false
+	isReturns := false
 
 	for _, line := range lines {
 		line = strings.TrimSpace(line)
@@ -87,18 +91,28 @@ func extractDescriptionData(doc string) DescriptionData {
 			isExample = true
 			isNotes = false
 			isDeprecationNote = false
+			isReturns = false
 			continue
 		}
 		if strings.HasPrefix(line, "Notes:") {
 			isNotes = true
 			isExample = false
 			isDeprecationNote = false
+			isReturns = false
 			continue
 		}
 		if strings.HasPrefix(line, "Deprecated:") {
 			isDeprecationNote = true
 			isExample = false
 			isNotes = false
+			isReturns = false
+			continue
+		}
+		if strings.HasPrefix(line, "Returns:") {
+			isReturns = true
+			isExample = false
+			isNotes = false
+			isDeprecationNote = false
 			continue
 		}
 
@@ -108,6 +122,8 @@ func extractDescriptionData(doc string) DescriptionData {
 			notesLines = append(notesLines, line)
 		} else if isDeprecationNote {
 			deprecationNoteLines = append(deprecationNoteLines, line)
+		} else if isReturns {
+				returnsLines = append(returnsLines, line)
 		} else {
 			descLines = append(descLines, line)
 		}
@@ -145,11 +161,20 @@ func extractDescriptionData(doc string) DescriptionData {
 		deprecationNote = ""
 	}
 
+	// Returns
+	returns = strings.Join(returnsLines, "</p>\n<p>")
+	returns = "<p>" + returns + "</p>"
+	returns = strings.ReplaceAll(returns, "\t", " ")
+	if returns == "<p></p>" {
+		returns = ""
+	}
+	
 	return DescriptionData{
 		Description:     description,
 		Example:         example,
 		Notes:           notes,
 		DeprecationNote: deprecationNote,
+		Returns:         returns,
 
 		// Raw fields
 		DescriptionRaw:     descriptionRaw,
