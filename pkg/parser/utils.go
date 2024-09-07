@@ -167,7 +167,8 @@ func extractDescriptionData(doc string) DescriptionData {
 	returns = strings.ReplaceAll(returns, "\t", " ")
 	if returns == "<p></p>" {
 		returns = ""
-
+	}
+	
 	return DescriptionData{
 		Description:     description,
 		Example:         example,
