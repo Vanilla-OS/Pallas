@@ -1,6 +1,6 @@
 package parser
 
-// EntityInfo contains relevant information about each entity in the package
+// Information about each entity in the package
 // (functions, types, interfaces)
 type EntityInfo struct {
 	Name            string
@@ -25,7 +25,7 @@ type EntityInfo struct {
 	DeprecationNoteRaw string
 }
 
-// ReferenceInfo contains information about references used by an entity
+// Information about references used by an entity
 type ReferenceInfo struct {
 	Name        string
 	Package     string
@@ -33,20 +33,20 @@ type ReferenceInfo struct {
 	PackagePath string
 }
 
-// FieldInfo contains relevant information about each field in a struct
+// Information about each field in a struct
 type FieldInfo struct {
 	Name string
 	Type string
 	Tag  string
 }
 
-// ImplementationInfo contains information about an implemented interface
+// Information about an implemented interface
 type ImplementationInfo struct {
 	InterfaceName string
 	Package       string
 }
 
-// ImportInfo contains information about an imported package
+// Information about an imported package
 type ImportInfo struct {
 	URL     string
 	Path    string

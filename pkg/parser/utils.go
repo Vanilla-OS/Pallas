@@ -9,7 +9,9 @@ import (
 	"strings"
 )
 
-// extractMethods extracts methods from an interface declaration
+// Extract methods from an interface declaration
+//
+// Returns: EntityInfo representing the methods of the interface
 func extractMethods(interfaceType *ast.InterfaceType) []EntityInfo {
 	var methods []EntityInfo
 	for _, field := range interfaceType.Methods.List {
@@ -25,7 +27,9 @@ func extractMethods(interfaceType *ast.InterfaceType) []EntityInfo {
 	return methods
 }
 
-// extractFields extracts fields from a struct
+// Extract fields from a struct
+//
+// Returns: FieldInfo representing the fields of the struct
 func extractFields(structType *ast.StructType) []FieldInfo {
 	var fields []FieldInfo
 	for _, field := range structType.Fields.List {
@@ -42,7 +46,9 @@ func extractFields(structType *ast.StructType) []FieldInfo {
 	return fields
 }
 
-// extractTag extracts struct tags
+// Extract a structs tags
+//
+// Returns: Tag value as a string or an empty string if no tag is present
 func extractTag(field *ast.Field) string {
 	if field.Tag != nil {
 		return strings.Trim(field.Tag.Value, "`")
@@ -50,7 +56,7 @@ func extractTag(field *ast.Field) string {
 	return ""
 }
 
-// DescriptionData contains different parts of a function's documentation comment
+// Holds different parts of a function's documentation comment
 type DescriptionData struct {
 	Description     string
 	Example         string
@@ -63,8 +69,11 @@ type DescriptionData struct {
 	DeprecationNoteRaw string
 }
 
-// extractDescriptionData extracts the description and example code from a
-// function's documentation comment
+// Extract and format description data and example code from a
+// documentation comment string
+//
+// Returns: A DescriptionData struct containing formatted and raw description,
+// example, notes, deprecation note, and returns information
 func extractDescriptionData(doc string) DescriptionData {
 	lines := strings.Split(doc, "\n")
 
@@ -182,7 +191,11 @@ func extractDescriptionData(doc string) DescriptionData {
 	}
 }
 
-// formatExample formats the example code using the go/format package
+// Format the example code snippet to be properly indented and aligned
+// using the go/format package.
+//
+// Returns: Formatted example code as a string; if formatting fails, returns
+// the original example string
 func formatExample(example string) string {
 	src := []byte(example)
 	formattedSrc, err := format.Source(src)
@@ -193,7 +206,9 @@ func formatExample(example string) string {
 	return string(formattedSrc)
 }
 
-// extractParameters extracts the parameters from a function or method declaration
+// Extract the parameters from a function or method declaration
+//
+// Returns: Strings representing parameter names and their types
 func extractParameters(fieldList *ast.FieldList) []string {
 	var params []string
 	if fieldList != nil {
@@ -210,7 +225,10 @@ func extractParameters(fieldList *ast.FieldList) []string {
 	return params
 }
 
-// extractBody extracts the body of a function declaration
+// Extracts the body of a function declaration
+//
+// Returns: Strings where each string represents a parameter name
+// and type, or just the type if no name is provided
 func extractBody(fs *token.FileSet, fn *ast.FuncDecl) string {
 	if fn.Body == nil {
 		return ""
@@ -227,7 +245,10 @@ func extractBody(fs *token.FileSet, fn *ast.FuncDecl) string {
 	return html.EscapeString(body)
 }
 
-// formatExpr formats an expression using the go/format package
+// Format an expression into a string representation
+// using the go/format package.
+//
+// Returns: Formatted string of the expression
 func formatExpr(expr ast.Expr) string {
 	var out strings.Builder
 	if err := format.Node(&out, token.NewFileSet(), expr); err != nil {
@@ -236,7 +257,9 @@ func formatExpr(expr ast.Expr) string {
 	return out.String()
 }
 
-// findReferences finds references to other entities in an entity
+// Identify references to other entities within the given entity.
+//
+// Returns: ReferenceInfo with details of each referenced entity
 func findReferences(entity EntityInfo, entityIndex map[string]EntityInfo) []ReferenceInfo {
 	var references []ReferenceInfo
 
