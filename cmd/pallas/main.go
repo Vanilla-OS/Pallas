@@ -14,6 +14,10 @@ import (
 	"github.com/vanilla-os/pallas/pkg/parser"
 )
 
+// Entry point of the documentation generator. 
+// Handle flag parsing for configuration, determine project and output directories, 
+// Clean the output directory, read the README.md file, parse project packages, 
+// generate HTML documentation and create the index page.
 func main() {
 	// Flags
 	destDir := flag.String("dest", "", "Specify a custom destination directory for the output (default is './dist')")
@@ -121,7 +125,11 @@ func main() {
 	fmt.Printf("Documentation index generated in %s/index.html\n", outputDir)
 }
 
-// markdownToHTML converts markdown content to HTML and applies Tailwind CSS classes
+// Convert markdown content to HTML, 
+// apply Tailwind CSS classes to HTML elements
+// and fix image URLs
+//
+// Returns: HTML string with applied CSS classes and fixes
 func markdownToHTML(markdown string) string {
 	htmlContent := blackfriday.Run([]byte(markdown))
 	htmlString := string(htmlContent)
@@ -155,7 +163,11 @@ func markdownToHTML(markdown string) string {
 	return htmlString
 }
 
-// readReadme reads the README.md file and converts it to HTML
+// Read the README.md file from a custom path or the project root,
+// convert its content to HTML.
+// If the README.md file is not found, generate default content.
+//
+// Returns: HTML string of the README.md content
 func readReadme(customPath, projectRoot string) string {
 	var readmePath string
 	if customPath != "" {
@@ -173,7 +185,10 @@ func readReadme(customPath, projectRoot string) string {
 	return markdownToHTML(string(content))
 }
 
-// generateDefaultReadme generates a default README.md content
+// Generate a default README.md content as a fallback
+// when no custom README.md is provided.
+//
+// Returns: Default markdown string with basic documentation instructions
 func generateDefaultReadme() string {
 	return `# Welcome to the Documentation
 

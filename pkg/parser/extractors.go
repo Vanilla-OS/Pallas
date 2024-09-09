@@ -5,12 +5,16 @@ import (
 	"go/token"
 )
 
-// EntityExtractor defines an interface for extracting information from AST declarations
+// Define an interface for extracting information from AST declarations
+//
+// Returns: EntityInfo struct
 type EntityExtractor interface {
 	Extract(decl ast.Decl, fs *token.FileSet, interfaces map[string]EntityInfo, pkgName string, packagePath string, url string) EntityInfo
 }
 
-// FunctionExtractor extracts information from function declarations
+// Extract function details from a function declaration.
+//
+// Returns: An EntityInfo struct with extracted details about the function
 type FunctionExtractor struct{}
 
 func (f FunctionExtractor) Extract(decl ast.Decl, fs *token.FileSet, interfaces map[string]EntityInfo, pkgName string, packagePath string, url string) EntityInfo {
@@ -37,7 +41,9 @@ func (f FunctionExtractor) Extract(decl ast.Decl, fs *token.FileSet, interfaces 
 	}
 }
 
-// MethodExtractor extracts information from method declarations
+// Extract method details from a method declaration.
+//
+// Returns: An EntityInfo struct with extracted details about the method
 type MethodExtractor struct{}
 
 func (m MethodExtractor) Extract(decl ast.Decl, fs *token.FileSet, interfaces map[string]EntityInfo, pkgName string, packagePath string, url string) EntityInfo {
@@ -64,7 +70,9 @@ func (m MethodExtractor) Extract(decl ast.Decl, fs *token.FileSet, interfaces ma
 	}
 }
 
-// StructExtractor extracts information from struct declarations
+// Extract struct details from a struct declaration.
+//
+// Returns: An EntityInfo struct with extracted details about the struct
 type StructExtractor struct{}
 
 func (s StructExtractor) Extract(decl ast.Decl, fs *token.FileSet, interfaces map[string]EntityInfo, pkgName string, packagePath string, url string) EntityInfo {
@@ -90,7 +98,9 @@ func (s StructExtractor) Extract(decl ast.Decl, fs *token.FileSet, interfaces ma
 	}
 }
 
-// InterfaceExtractor extracts information from interface declarations
+// Extract interface details from an interface declaration.
+//
+// Returns: An EntityInfo struct with extracted details about the interface
 type InterfaceExtractor struct{}
 
 func (i InterfaceExtractor) Extract(decl ast.Decl, fs *token.FileSet, interfaces map[string]EntityInfo, pkgName string, packagePath string, url string) EntityInfo {
@@ -116,7 +126,9 @@ func (i InterfaceExtractor) Extract(decl ast.Decl, fs *token.FileSet, interfaces
 	}
 }
 
-// TypeExtractor extracts information from type declarations
+// Extract type details from a type declaration.
+//
+// Returns: An EntityInfo struct with details about the type
 type TypeExtractor struct{}
 
 func (t TypeExtractor) Extract(decl ast.Decl, fs *token.FileSet, interfaces map[string]EntityInfo, pkgName string, packagePath string, url string) EntityInfo {
