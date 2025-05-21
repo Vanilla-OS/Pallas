@@ -17,7 +17,12 @@ var htmlTemplate string
 //go:embed templates/static/*
 var staticAssets embed.FS
 
-// GenerateHTML generates an HTML file for the given package and entities
+// Generate HTML documentation for a Go package.
+// Create the necessary directories,
+// parses template files and write HTML output for
+// the specified package entities and imports.
+//
+// Returns: An error if any occurs during the process, otherwise nil
 func GenerateHTML(projectPath string, packagePath string, entities []parser.EntityInfo, imports []parser.ImportInfo, outputDir string, docTitle string) error {
 	// Create the output directory if it doesn't exist
 	if err := os.MkdirAll(outputDir, os.ModePerm); err != nil {

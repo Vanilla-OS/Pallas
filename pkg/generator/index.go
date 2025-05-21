@@ -17,7 +17,12 @@ type PackageLink struct {
 	Link string
 }
 
-// GenerateIndex generates the index.html file listing all the documented packages
+// Generate the index page for the documentation and
+// group packages by their directory prefix.
+// Create the output directory if it doesn't exist,
+// parse the index template and writes the generated HTML.
+//
+// Returns: An error if any occurs during the process, otherwise nil
 func GenerateIndex(projectPath string, packages []string, outputDir string, docTitle string, readmeContent string) error {
 	// Create the output directory if it doesn't exist
 	if err := os.MkdirAll(outputDir, os.ModePerm); err != nil {

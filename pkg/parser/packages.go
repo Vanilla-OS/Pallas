@@ -6,7 +6,11 @@ import (
 	"golang.org/x/tools/go/packages"
 )
 
-// GetPackages returns a list of all package directories in the project
+
+// Load and return a list of Go package directories from the current project.
+// Exclude the root directory and only include directories containing Go files.
+//
+// Returns: Package directory paths and an error if any occurs
 //
 // Example:
 //

@@ -8,8 +8,11 @@ import (
 	"strings"
 )
 
-// ParseEntitiesInPackage parses the entities in a given package and returns
-// a slice of EntityInfo
+// Parse Go source files in the specified package directory, extracting function, method, type, 
+// struct, and interface information. Also gather import details and associate methods with structs.
+// Resolve interface implementations and find references for each entity.
+//
+// Returns: Entity and import information, and an error if any occurs
 //
 // Example:
 //
@@ -169,7 +172,9 @@ func ParseEntitiesInPackage(projectPath string, pkgPath string, relativePath str
 	return entities, imports, nil
 }
 
-// findImplementedInterfaces checks which interfaces are implemented by a struct
+// Check which interfaces are implemented by a struct
+//
+// Returns: ImplementationInfo with details of each implemented interface
 func findImplementedInterfaces(entity EntityInfo, interfaces map[string]EntityInfo) []ImplementationInfo {
 	var implemented []ImplementationInfo
 
@@ -185,7 +190,9 @@ func findImplementedInterfaces(entity EntityInfo, interfaces map[string]EntityIn
 	return implemented
 }
 
-// implementsInterface checks if a struct implements a given interface
+// Check if a struct implements a given interface
+//
+// Returns: True if the struct implements the interface; otherwise, false
 func implementsInterface(entity EntityInfo, iface EntityInfo) bool {
 	methodSet := make(map[string]EntityInfo)
 	for _, method := range entity.Methods {
@@ -205,7 +212,9 @@ func implementsInterface(entity EntityInfo, iface EntityInfo) bool {
 	return true
 }
 
-// methodsMatch checks if the parameters and return types of two methods match
+// Check if the parameters and return types of two methods match
+//
+// Returns: True if the methods match; otherwise, false
 func methodsMatch(ifaceMethod, structMethod EntityInfo) bool {
 	if len(ifaceMethod.Parameters) != len(structMethod.Parameters) ||
 		len(ifaceMethod.Returns) != len(structMethod.Returns) {
