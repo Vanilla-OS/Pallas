@@ -185,7 +185,7 @@
 				{{if .Example}}
 				<h3 class="font-bold mt-4 mb-2">Example:</h3>
 				<pre
-					class="bg-gray-800 dark:bg-gray-700 p-4 rounded-lg overflow-x-auto"><code class="language-go">{{.Example}}</code></pre>
+					class="bg-gray-800 dark:bg-gray-700 p-4 rounded-lg overflow-x-auto"><code class="hljs language-go">{{.Example}}</code></pre>
 				{{end}}
 
 				{{if .Notes}}
@@ -242,7 +242,7 @@
 					<summary class="cursor-pointer font-semibold text-blue-600 dark:text-blue-400">Show/Hide Function
 						Body</summary>
 					<pre
-						class="mt-2 bg-gray-800 dark:bg-gray-700 p-4 rounded-lg overflow-x-auto"><code class="language-go">{{.Body}}</code></pre>
+						class="mt-2 bg-gray-800 dark:bg-gray-700 p-4 rounded-lg overflow-x-auto"><code class="hljs language-go">{{.Body}}</code></pre>
 				</details>
 				{{end}}
 
@@ -305,7 +305,7 @@
 						{{if .Example}}
 						<h3 class="font-bold mt-4 mb-2">Example:</h3>
 						<pre
-							class="bg-gray-800 dark:bg-gray-700 p-4 rounded-lg overflow-x-auto"><code class="language-go">{{.Example}}</code></pre>
+							class="bg-gray-800 dark:bg-gray-700 p-4 rounded-lg overflow-x-auto"><code class="hljs language-go">{{.Example}}</code></pre>
 						{{end}}
 
 						{{if .Notes}}
@@ -340,7 +340,7 @@
 							<summary class="cursor-pointer font-semibold text-blue-600 dark:text-blue-400">Show/Hide
 								Method Body</summary>
 							<pre
-								class="mt-2 bg-gray-800 dark:bg-gray-700 p-4 rounded-lg overflow-x-auto"><code class="language-go">{{.Body}}</code></pre>
+								class="mt-2 bg-gray-800 dark:bg-gray-700 p-4 rounded-lg overflow-x-auto"><code class="hljs language-go">{{.Body}}</code></pre>
 						</details>
 						{{end}}
 
@@ -405,7 +405,7 @@
 
 				<h3 class="font-bold mt-4 mb-2">Import example:</h3>
 				<pre
-					class="bg-gray-800 dark:bg-gray-700 p-4 rounded-lg overflow-x-auto"><code class="language-go">import "{{.Path}}"</code></pre>
+					class="bg-gray-800 dark:bg-gray-700 p-4 rounded-lg overflow-x-auto"><code class="hljs language-go">import "{{.Path}}"</code></pre>
 
 				{{if .Alias}}
 				<h3 class="font-bold mt-4 mb-2">Imported as:</h3>
