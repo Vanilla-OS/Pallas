@@ -123,7 +123,7 @@ func extractDescriptionData(doc string) DescriptionData {
 		} else if isDeprecationNote {
 			deprecationNoteLines = append(deprecationNoteLines, line)
 		} else if isReturns {
-				returnsLines = append(returnsLines, line)
+			returnsLines = append(returnsLines, line)
 		} else {
 			descLines = append(descLines, line)
 		}
@@ -168,7 +168,7 @@ func extractDescriptionData(doc string) DescriptionData {
 	if returns == "<p></p>" {
 		returns = ""
 	}
-	
+
 	return DescriptionData{
 		Description:     description,
 		Example:         example,
@@ -242,7 +242,8 @@ func findReferences(entity EntityInfo, entityIndex map[string]EntityInfo) []Refe
 
 	// Check for parameters
 	for _, param := range entity.Parameters {
-		paramType := strings.Split(param, " ")[1]
+		parts := strings.Fields(param)
+		paramType := parts[len(parts)-1]
 		if refEntity, found := entityIndex[entity.Package+"."+paramType]; found {
 			references = append(references, ReferenceInfo{
 				Name:        paramType,
@@ -255,9 +256,11 @@ func findReferences(entity EntityInfo, entityIndex map[string]EntityInfo) []Refe
 
 	// Check for returns
 	for _, ret := range entity.Returns {
-		if refEntity, found := entityIndex[entity.Package+"."+ret]; found {
+		parts := strings.Fields(ret)
+		retType := parts[len(parts)-1]
+		if refEntity, found := entityIndex[entity.Package+"."+retType]; found {
 			references = append(references, ReferenceInfo{
-				Name:        ret,
+				Name:        retType,
 				Package:     refEntity.Package,
 				PackageURL:  refEntity.PackageURL,
 				PackagePath: refEntity.PackagePath,
