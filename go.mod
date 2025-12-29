@@ -11,6 +11,9 @@ require (
 )
 
 require (
+	github.com/mirkobrombin/go-struct-flags v1.0.1 // indirect
 	golang.org/x/mod v0.31.0 // indirect
 	golang.org/x/sync v0.19.0 // indirect
 )
+
+replace github.com/mirkobrombin/go-cli-builder => ./tmp-go-cli-builder

@@ -7,8 +7,7 @@ import (
 	"regexp"
 	"strings"
 
-	"github.com/mirkobrombin/go-cli-builder/v1/command"
-	"github.com/mirkobrombin/go-cli-builder/v1/root"
+	"github.com/mirkobrombin/go-cli-builder/v2/cli"
 	"github.com/russross/blackfriday/v2"
 	"github.com/vanilla-os/pallas/pkg/generator"
 	"github.com/vanilla-os/pallas/pkg/parser"
@@ -22,65 +21,42 @@ type PallasConfig struct {
 	Project string
 }
 
-func main() {
-	args := os.Args[1:]
-	inject := true
+type CLI struct {
+	Generate GenerateCmd `cmd:"" help:"Generate documentation"`
+	Version  VersionCmd  `cmd:"" help:"Print version information"`
 
-	// If the user provided a command, we don't inject "generate"
-	if len(args) > 0 {
-		cmd := args[0]
-		if !strings.HasPrefix(cmd, "-") {
-			switch cmd {
-			case "version", "completion", "help", "generate":
-				inject = false
-			}
-		}
-	}
-
-	if inject {
-		newArgs := append([]string{os.Args[0], "generate"}, args...)
-		os.Args = newArgs
-	}
-
-	rootCmd := root.NewRootCommand(
-		"pallas",
-		"pallas [command] [flags]",
-		"Pallas is a documentation generator for Go projects.",
-		"0.0.1",
-	)
-
-	genCmd := &command.Command{
-		Name:        "generate",
-		Usage:       "generate [flags] [project-path]",
-		Description: "Generate documentation",
-		Run: func(c *command.Command, rf *command.RootFlags, args []string) error {
-			return runGenerate(c, args)
-		},
-	}
-	genCmd.AddFlag("dest", "d", "Destination directory", "./dist", true)
-	genCmd.AddFlag("title", "t", "Project title", "Pallas", true)
-	genCmd.AddFlag("readme", "r", "Readme file", "README.md", true)
-	genCmd.AddFlag("project", "p", "Project root", ".", true)
-
-	rootCmd.AddCommand(genCmd)
-
-	if err := rootCmd.Execute(); err != nil {
-		fmt.Println(err)
-		os.Exit(1)
-	}
+	cli.Base
 }
 
-// runGenerate handles the main logic for parsing and generating documentation.
-func runGenerate(c *command.Command, args []string) error {
+type VersionCmd struct {
+	cli.Base
+}
+
+func (c *VersionCmd) Run() error {
+	fmt.Println("0.0.1")
+	return nil
+}
+
+type GenerateCmd struct {
+	Dest        string `cli:"dest,d" help:"Destination directory" default:"./dist"`
+	Title       string `cli:"title,t" help:"Project title" default:"Pallas"`
+	Readme      string `cli:"readme,r" help:"Readme file" default:"README.md"`
+	ProjectFlag string `cli:"project,p" help:"Project root" default:"."`
+	ProjectArg  string `arg:"" optional:"true" name:"project-path" help:"Project root path"`
+
+	cli.Base
+}
+
+func (c *GenerateCmd) Run() error {
 	config := &PallasConfig{
-		Dest:    c.GetFlagString("dest"),
-		Title:   c.GetFlagString("title"),
-		Readme:  c.GetFlagString("readme"),
-		Project: c.GetFlagString("project"),
+		Dest:    c.Dest,
+		Title:   c.Title,
+		Readme:  c.Readme,
+		Project: c.ProjectFlag,
 	}
 
-	if len(args) > 0 {
-		config.Project = args[0]
+	if c.ProjectArg != "" {
+		config.Project = c.ProjectArg
 	}
 
 	projectPath := config.Project
@@ -203,6 +179,33 @@ func runGenerate(c *command.Command, args []string) error {
 
 	fmt.Println("Documentation generated successfully!")
 	return nil
+}
+
+func main() {
+	args := os.Args[1:]
+	inject := true
+
+	// If the user provided a command, we don't inject "generate"
+	if len(args) > 0 {
+		cmd := args[0]
+		if !strings.HasPrefix(cmd, "-") {
+			switch cmd {
+			case "version", "completion", "help", "generate":
+				inject = false
+			}
+		}
+	}
+
+	if inject {
+		newArgs := append([]string{os.Args[0], "generate"}, args...)
+		os.Args = newArgs
+	}
+
+	app := &CLI{}
+	if err := cli.Run(app); err != nil {
+		fmt.Println(err)
+		os.Exit(1)
+	}
 }
 
 // getInitials extracts a short representation (initials) from the project title.
