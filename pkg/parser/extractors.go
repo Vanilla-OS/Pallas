@@ -3,153 +3,265 @@ package parser
 import (
 	"go/ast"
 	"go/token"
+	"strings"
 )
 
-// Define an interface for extracting information from AST declarations
-//
-// Returns: EntityInfo struct
+// EntityExtractor defines an interface for extracting information from AST declarations.
 type EntityExtractor interface {
-	Extract(decl ast.Decl, fs *token.FileSet, interfaces map[string]EntityInfo, pkgName string, packagePath string, url string) EntityInfo
+	// Extract extracts entity information from an AST node.
+	Extract(node ast.Node, fset *token.FileSet, pkgPath string, fileContent []byte) ([]EntityInfo, error)
 }
 
-// Extract function details from a function declaration.
-//
-// Returns: An EntityInfo struct with extracted details about the function
+// FunctionExtractor extracts details from function declarations.
 type FunctionExtractor struct{}
 
-func (f FunctionExtractor) Extract(decl ast.Decl, fs *token.FileSet, interfaces map[string]EntityInfo, pkgName string, packagePath string, url string) EntityInfo {
-	funcDecl := decl.(*ast.FuncDecl)
-	descriptionData := extractDescriptionData(funcDecl.Doc.Text())
-
-	return EntityInfo{
-		Name:            funcDecl.Name.Name,
-		Type:            "function",
-		Body:            extractBody(fs, funcDecl),
-		Description:     descriptionData.Description,
-		Example:         descriptionData.Example,
-		Notes:           descriptionData.Notes,
-		DeprecationNote: descriptionData.DeprecationNote,
-		Parameters:      extractParameters(funcDecl.Type.Params),
-		Returns:         extractParameters(funcDecl.Type.Results),
-		Package:         pkgName,
-		PackageURL:      url,
-		PackagePath:     packagePath,
-
-		// Raw fields
-		DescriptionRaw:     descriptionData.DescriptionRaw,
-		DeprecationNoteRaw: descriptionData.DeprecationNoteRaw,
+// Extract implements the EntityExtractor interface for functions.
+func (e FunctionExtractor) Extract(node ast.Node, fset *token.FileSet, pkgPath string, fileContent []byte) ([]EntityInfo, error) {
+	decl, ok := node.(*ast.FuncDecl)
+	if !ok {
+		return nil, nil
 	}
+
+	doc := decl.Doc.Text()
+	descData := extractDescriptionData(doc)
+
+	pos := fset.Position(decl.Pos())
+	end := fset.Position(decl.End())
+
+	signature := "func " + decl.Name.Name + strings.TrimPrefix(formatExpr(decl.Type), "func")
+
+	entity := EntityInfo{
+		Name:               decl.Name.Name,
+		Description:        descData.Description,
+		DescriptionRaw:     descData.DescriptionRaw,
+		DeprecationNote:    descData.DeprecationNote,
+		DeprecationNoteRaw: descData.DeprecationNoteRaw,
+		Parameters:         extractParameters(decl.Type.Params),
+		Returns:            extractParameters(decl.Type.Results),
+		Body:               extractBody(decl.Body, fset, fileContent),
+		Example:            descData.Example,
+		Notes:              descData.Notes,
+		Type:               "function",
+		Signature:          signature,
+		File:               pos.Filename,
+		LineStart:          pos.Line,
+		LineEnd:            end.Line,
+		Package:            pkgPath,
+		PackagePath:        pkgPath,
+	}
+
+	return []EntityInfo{entity}, nil
 }
 
-// Extract method details from a method declaration.
-//
-// Returns: An EntityInfo struct with extracted details about the method
+// MethodExtractor extracts details from method declarations.
 type MethodExtractor struct{}
 
-func (m MethodExtractor) Extract(decl ast.Decl, fs *token.FileSet, interfaces map[string]EntityInfo, pkgName string, packagePath string, url string) EntityInfo {
-	funcDecl := decl.(*ast.FuncDecl)
-	descriptionData := extractDescriptionData(funcDecl.Doc.Text())
-
-	return EntityInfo{
-		Name:            funcDecl.Name.Name,
-		Type:            "method",
-		Body:            extractBody(fs, funcDecl),
-		Description:     descriptionData.Description,
-		Example:         descriptionData.Example,
-		Notes:           descriptionData.Notes,
-		DeprecationNote: descriptionData.DeprecationNote,
-		Parameters:      extractParameters(funcDecl.Type.Params),
-		Returns:         extractParameters(funcDecl.Type.Results),
-		Package:         pkgName,
-		PackageURL:      url,
-		PackagePath:     packagePath,
-
-		// Raw fields
-		DescriptionRaw:     descriptionData.DescriptionRaw,
-		DeprecationNoteRaw: descriptionData.DeprecationNoteRaw,
+// Extract implements the EntityExtractor interface for methods.
+func (e MethodExtractor) Extract(node ast.Node, fset *token.FileSet, pkgPath string, fileContent []byte) ([]EntityInfo, error) {
+	decl, ok := node.(*ast.FuncDecl)
+	if !ok {
+		return nil, nil
 	}
+
+	doc := decl.Doc.Text()
+	descData := extractDescriptionData(doc)
+
+	pos := fset.Position(decl.Pos())
+	end := fset.Position(decl.End())
+
+	recv := ""
+	if decl.Recv != nil && len(decl.Recv.List) > 0 {
+		recv = "(" + formatExpr(decl.Recv.List[0].Type) + ") "
+	}
+	signature := "func " + recv + decl.Name.Name + strings.TrimPrefix(formatExpr(decl.Type), "func")
+
+	entity := EntityInfo{
+		Name:               decl.Name.Name,
+		Description:        descData.Description,
+		DescriptionRaw:     descData.DescriptionRaw,
+		DeprecationNote:    descData.DeprecationNote,
+		DeprecationNoteRaw: descData.DeprecationNoteRaw,
+		Parameters:         extractParameters(decl.Type.Params),
+		Returns:            extractParameters(decl.Type.Results),
+		Body:               extractBody(decl.Body, fset, fileContent),
+		Example:            descData.Example,
+		Notes:              descData.Notes,
+		Type:               "method",
+		Signature:          signature,
+		File:               pos.Filename,
+		LineStart:          pos.Line,
+		LineEnd:            end.Line,
+		Package:            pkgPath,
+		PackagePath:        pkgPath,
+	}
+
+	return []EntityInfo{entity}, nil
 }
 
-// Extract struct details from a struct declaration.
-//
-// Returns: An EntityInfo struct with extracted details about the struct
+// StructExtractor extracts details from struct declarations.
 type StructExtractor struct{}
 
-func (s StructExtractor) Extract(decl ast.Decl, fs *token.FileSet, interfaces map[string]EntityInfo, pkgName string, packagePath string, url string) EntityInfo {
-	spec := decl.(*ast.GenDecl).Specs[0].(*ast.TypeSpec)
-	structType := spec.Type.(*ast.StructType)
-
-	descriptionData := extractDescriptionData(decl.(*ast.GenDecl).Doc.Text())
-
-	return EntityInfo{
-		Name:            spec.Name.Name,
-		Type:            "struct",
-		Description:     descriptionData.Description,
-		Notes:           descriptionData.Notes,
-		DeprecationNote: descriptionData.DeprecationNote,
-		Fields:          extractFields(structType),
-		Package:         pkgName,
-		PackageURL:      url,
-		PackagePath:     packagePath,
-
-		// Raw fields
-		DescriptionRaw:     descriptionData.DescriptionRaw,
-		DeprecationNoteRaw: descriptionData.DeprecationNoteRaw,
+// Extract implements the EntityExtractor interface for structs.
+func (e StructExtractor) Extract(node ast.Node, fset *token.FileSet, pkgPath string, fileContent []byte) ([]EntityInfo, error) {
+	decl, ok := node.(*ast.GenDecl)
+	if !ok {
+		return nil, nil
 	}
+
+	var entities []EntityInfo
+
+	for _, spec := range decl.Specs {
+		typeSpec, ok := spec.(*ast.TypeSpec)
+		if !ok {
+			continue
+		}
+		structType, ok := typeSpec.Type.(*ast.StructType)
+		if !ok {
+			continue
+		}
+
+		doc := decl.Doc.Text()
+		if typeSpec.Doc != nil {
+			doc = typeSpec.Doc.Text()
+		}
+		descData := extractDescriptionData(doc)
+
+		pos := fset.Position(typeSpec.Pos())
+		end := fset.Position(typeSpec.End())
+
+		signature := "type " + typeSpec.Name.Name + " struct"
+
+		entity := EntityInfo{
+			Name:               typeSpec.Name.Name,
+			Description:        descData.Description,
+			DescriptionRaw:     descData.DescriptionRaw,
+			DeprecationNote:    descData.DeprecationNote,
+			DeprecationNoteRaw: descData.DeprecationNoteRaw,
+			Fields:             extractFields(structType),
+			Example:            descData.Example,
+			Notes:              descData.Notes,
+			Type:               "struct",
+			Signature:          signature,
+			File:               pos.Filename,
+			LineStart:          pos.Line,
+			LineEnd:            end.Line,
+			Package:            pkgPath,
+			PackagePath:        pkgPath,
+		}
+		entities = append(entities, entity)
+	}
+
+	return entities, nil
 }
 
-// Extract interface details from an interface declaration.
-//
-// Returns: An EntityInfo struct with extracted details about the interface
+// InterfaceExtractor extracts details from interface declarations.
 type InterfaceExtractor struct{}
 
-func (i InterfaceExtractor) Extract(decl ast.Decl, fs *token.FileSet, interfaces map[string]EntityInfo, pkgName string, packagePath string, url string) EntityInfo {
-	spec := decl.(*ast.GenDecl).Specs[0].(*ast.TypeSpec)
-	interfaceType := spec.Type.(*ast.InterfaceType)
-
-	descriptionData := extractDescriptionData(decl.(*ast.GenDecl).Doc.Text())
-
-	return EntityInfo{
-		Name:            spec.Name.Name,
-		Description:     descriptionData.Description,
-		Notes:           descriptionData.Notes,
-		DeprecationNote: descriptionData.DeprecationNote,
-		Type:            "interface",
-		Methods:         extractMethods(interfaceType),
-		Package:         pkgName,
-		PackageURL:      url,
-		PackagePath:     packagePath,
-
-		// Raw fields
-		DescriptionRaw:     descriptionData.DescriptionRaw,
-		DeprecationNoteRaw: descriptionData.DeprecationNoteRaw,
+// Extract implements the EntityExtractor interface for interfaces.
+func (e InterfaceExtractor) Extract(node ast.Node, fset *token.FileSet, pkgPath string, fileContent []byte) ([]EntityInfo, error) {
+	decl, ok := node.(*ast.GenDecl)
+	if !ok {
+		return nil, nil
 	}
+
+	var entities []EntityInfo
+
+	for _, spec := range decl.Specs {
+		typeSpec, ok := spec.(*ast.TypeSpec)
+		if !ok {
+			continue
+		}
+		interfaceType, ok := typeSpec.Type.(*ast.InterfaceType)
+		if !ok {
+			continue
+		}
+
+		doc := decl.Doc.Text()
+		if typeSpec.Doc != nil {
+			doc = typeSpec.Doc.Text()
+		}
+		descData := extractDescriptionData(doc)
+
+		pos := fset.Position(typeSpec.Pos())
+		end := fset.Position(typeSpec.End())
+
+		signature := "type " + typeSpec.Name.Name + " interface"
+
+		entity := EntityInfo{
+			Name:               typeSpec.Name.Name,
+			Description:        descData.Description,
+			DescriptionRaw:     descData.DescriptionRaw,
+			DeprecationNote:    descData.DeprecationNote,
+			DeprecationNoteRaw: descData.DeprecationNoteRaw,
+			Methods:            extractMethods(interfaceType),
+			Example:            descData.Example,
+			Notes:              descData.Notes,
+			Type:               "interface",
+			Signature:          signature,
+			File:               pos.Filename,
+			LineStart:          pos.Line,
+			LineEnd:            end.Line,
+			Package:            pkgPath,
+			PackagePath:        pkgPath,
+		}
+		entities = append(entities, entity)
+	}
+
+	return entities, nil
 }
 
-// Extract type details from a type declaration.
-//
-// Returns: An EntityInfo struct with details about the type
+// TypeExtractor extracts details from general type declarations.
 type TypeExtractor struct{}
 
-func (t TypeExtractor) Extract(decl ast.Decl, fs *token.FileSet, interfaces map[string]EntityInfo, pkgName string, packagePath string, url string) EntityInfo {
-	spec := decl.(*ast.GenDecl).Specs[0].(*ast.TypeSpec)
-	typeExpr := formatExpr(spec.Type)
-
-	descriptionData := extractDescriptionData(decl.(*ast.GenDecl).Doc.Text())
-
-	return EntityInfo{
-		Name:            spec.Name.Name,
-		Description:     descriptionData.Description,
-		Notes:           descriptionData.Notes,
-		DeprecationNote: descriptionData.DeprecationNote,
-		Type:            "type",
-		Body:            typeExpr,
-		Package:         pkgName,
-		PackageURL:      url,
-		PackagePath:     packagePath,
-
-		// Raw fields
-		DescriptionRaw:     descriptionData.DescriptionRaw,
-		DeprecationNoteRaw: descriptionData.DeprecationNoteRaw,
+// Extract implements the EntityExtractor interface for types.
+func (e TypeExtractor) Extract(node ast.Node, fset *token.FileSet, pkgPath string, fileContent []byte) ([]EntityInfo, error) {
+	decl, ok := node.(*ast.GenDecl)
+	if !ok {
+		return nil, nil
 	}
+
+	var entities []EntityInfo
+
+	for _, spec := range decl.Specs {
+		typeSpec, ok := spec.(*ast.TypeSpec)
+		if !ok {
+			continue
+		}
+		if _, ok := typeSpec.Type.(*ast.StructType); ok {
+			continue
+		}
+		if _, ok := typeSpec.Type.(*ast.InterfaceType); ok {
+			continue
+		}
+
+		doc := decl.Doc.Text()
+		if typeSpec.Doc != nil {
+			doc = typeSpec.Doc.Text()
+		}
+		descData := extractDescriptionData(doc)
+
+		pos := fset.Position(typeSpec.Pos())
+		end := fset.Position(typeSpec.End())
+
+		signature := "type " + typeSpec.Name.Name + " " + formatExpr(typeSpec.Type)
+
+		entity := EntityInfo{
+			Name:               typeSpec.Name.Name,
+			Description:        descData.Description,
+			DescriptionRaw:     descData.DescriptionRaw,
+			DeprecationNote:    descData.DeprecationNote,
+			DeprecationNoteRaw: descData.DeprecationNoteRaw,
+			Example:            descData.Example,
+			Notes:              descData.Notes,
+			Type:               "type",
+			Signature:          signature,
+			File:               pos.Filename,
+			LineStart:          pos.Line,
+			LineEnd:            end.Line,
+			Package:            pkgPath,
+			PackagePath:        pkgPath,
+		}
+		entities = append(entities, entity)
+	}
+	return entities, nil
 }

@@ -1,2 +1,3 @@
-dist/
-pallas
+/pallas
+/dist
+/vendor

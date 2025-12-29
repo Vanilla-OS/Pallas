@@ -1,95 +1,299 @@
 package generator
 
 import (
-	"embed"
+	"encoding/json"
 	"fmt"
+	"html/template"
 	"os"
 	"path/filepath"
+	"regexp"
 	"strings"
-	"text/template"
 
 	"github.com/vanilla-os/pallas/pkg/parser"
 )
 
-//go:embed templates/entities.html
-var htmlTemplate string
+// PageData describes the data structure passed to the package entities template.
+type PageData struct {
+	Title           string
+	Entities        []parser.EntityInfo
+	Imports         []parser.ImportInfo
+	Readme          template.HTML
+	FileGroups      map[string][]parser.EntityInfo
+	Initials        string
+	PackageName     string
+	AllPackages     []PackageLink
+	TypeIndex       map[string]TypeInfo
+	ProjectPackages []string
+	ModulePath      string
+}
 
-//go:embed templates/static/*
-var staticAssets embed.FS
+// TypeInfo stores cross-reference data for a Go type.
+type TypeInfo struct {
+	Name    string
+	Package string
+	Link    string
+}
 
-// Generate HTML documentation for a Go package.
-// Create the necessary directories,
-// parses template files and write HTML output for
-// the specified package entities and imports.
-//
-// Returns: An error if any occurs during the process, otherwise nil
-func GenerateHTML(projectPath string, packagePath string, entities []parser.EntityInfo, imports []parser.ImportInfo, outputDir string, docTitle string) error {
-	// Create the output directory if it doesn't exist
-	if err := os.MkdirAll(outputDir, os.ModePerm); err != nil {
-		return fmt.Errorf("error creating output directory: %v", err)
+// PackageLink represents a navigation link to a package documentation page.
+type PackageLink struct {
+	Name      string
+	Link      string
+	IsCurrent bool
+}
+
+// GenerateHTML orchestrates the generation of HTML documentation for all packages in the project.
+func GenerateHTML(title string, outputDir string, entities []parser.EntityInfo, imports []parser.ImportInfo, readme string, initials string, modulePath string) error {
+	packageGroups := make(map[string][]parser.EntityInfo)
+	for _, e := range entities {
+		pkg := e.Package
+		if pkg == "" {
+			pkg = "main"
+		}
+		packageGroups[pkg] = append(packageGroups[pkg], e)
 	}
 
-	tmpl, err := template.New("package").Parse(htmlTemplate)
-	if err != nil {
-		return err
+	var allPackages []PackageLink
+	for pkg := range packageGroups {
+		allPackages = append(allPackages, PackageLink{
+			Name: pkg,
+			Link: packageFilename(pkg),
+		})
 	}
 
-	// Extract the relative path of the package based on the project path
-	relativePackagePath, err := filepath.Rel(projectPath, packagePath)
-	if err != nil {
-		return err
-	}
-
-	// Replace slashes with hyphens to ensure unique filenames
-	safeFileName := strings.ReplaceAll(relativePackagePath, string(os.PathSeparator), "-")
-
-	// Generate the HTML file
-	filePath := filepath.Join(outputDir, fmt.Sprintf("%s.html", safeFileName))
-	file, err := os.Create(filePath)
-	if err != nil {
-		return err
-	}
-	defer file.Close()
-
-	// Determine if the package has functions, types, and structs
-	hasFunctions := false
-	hasTypes := false
-	hasStructs := false
-	hasInterfaces := false
-	hasImports := len(imports) > 0
-	for _, entity := range entities {
-		if entity.Type == "function" {
-			hasFunctions = true
-		} else if entity.Type == "type" {
-			hasTypes = true
-		} else if entity.Type == "struct" {
-			hasStructs = true
-		} else if entity.Type == "interface" {
-			hasInterfaces = true
+	typeIndex := make(map[string]TypeInfo)
+	for _, e := range entities {
+		pkg := e.Package
+		if pkg == "" {
+			pkg = "main"
+		}
+		if e.Type == "struct" || e.Type == "interface" || e.Type == "type" {
+			info := TypeInfo{
+				Name:    e.Name,
+				Package: pkg,
+				Link:    packageFilename(pkg) + "#" + e.Name,
+			}
+			typeIndex[pkg+"."+e.Name] = info
+			if _, exists := typeIndex[e.Name]; !exists {
+				typeIndex[e.Name] = info
+			}
 		}
 	}
 
-	data := struct {
-		PackageName   string
-		Entities      []parser.EntityInfo
-		Imports       []parser.ImportInfo
-		Title         string
-		HasFunctions  bool
-		HasTypes      bool
-		HasStructs    bool
-		HasInterfaces bool
-		HasImports    bool
-	}{
-		PackageName:   relativePackagePath,
-		Entities:      entities,
-		Imports:       imports,
-		Title:         docTitle,
-		HasFunctions:  hasFunctions,
-		HasTypes:      hasTypes,
-		HasStructs:    hasStructs,
-		HasInterfaces: hasInterfaces,
-		HasImports:    hasImports,
+	var projectPackages []string
+	for pkg := range packageGroups {
+		projectPackages = append(projectPackages, pkg)
 	}
 
-	return tmpl.Execute(file, data)
+	for pkg, pkgEntities := range packageGroups {
+		if err := generatePackagePage(title, outputDir, pkg, pkgEntities, imports, initials, allPackages, modulePath, typeIndex, projectPackages); err != nil {
+			return err
+		}
+	}
+
+	return GenerateSearchIndex(outputDir, entities)
+}
+
+// packageFilename generates a safe filename for a package's documentation page.
+func packageFilename(pkg string) string {
+	safe := regexp.MustCompile(`[^a-zA-Z0-9_-]`).ReplaceAllString(pkg, "_")
+	return "pkg_" + safe + ".html"
+}
+
+// generatePackagePage generates a single HTML page for a specific package.
+func generatePackagePage(title string, outputDir string, pkg string, entities []parser.EntityInfo, imports []parser.ImportInfo, initials string, allPackages []PackageLink, modulePath string, typeIndex map[string]TypeInfo, projectPackages []string) error {
+	tmplPath := "pkg/generator/templates/entities.html"
+	tmplName := filepath.Base(tmplPath)
+
+	tmpl, err := template.New(tmplName).Funcs(template.FuncMap{
+		"contains": strings.Contains,
+		"replace":  strings.ReplaceAll,
+		"lower":    strings.ToLower,
+		"lineCount": func(s string) int {
+			return strings.Count(s, "\n") + 1
+		},
+		"html": func(s string) template.HTML {
+			return template.HTML(s)
+		},
+		"json": func(v interface{}) string {
+			b, _ := json.Marshal(v)
+			return string(b)
+		},
+		"pkgGoDevURL": func(importPath string) string {
+			return "https://pkg.go.dev/" + importPath
+		},
+		"isStdLib": func(importPath string) bool {
+			parts := strings.Split(importPath, "/")
+			return len(parts) > 0 && !strings.Contains(parts[0], ".")
+		},
+		"isInternalImport": func(importPath string) bool {
+			return modulePath != "" && strings.HasPrefix(importPath, modulePath)
+		},
+		"internalImportLink": func(importPath string) string {
+			parts := strings.Split(importPath, "/")
+			if len(parts) > 0 {
+				pkgName := parts[len(parts)-1]
+				return packageFilename(pkgName)
+			}
+			return "#"
+		},
+		"packageLink": func(pkgName string) string {
+			return packageFilename(pkgName)
+		},
+		"splitParam": func(param string) struct{ Name, Type string } {
+			parts := strings.Fields(param)
+			if len(parts) == 1 {
+				return struct{ Name, Type string }{Name: "", Type: parts[0]}
+			}
+			if len(parts) >= 2 {
+				return struct{ Name, Type string }{Name: parts[0], Type: strings.Join(parts[1:], " ")}
+			}
+			return struct{ Name, Type string }{Name: "", Type: ""}
+		},
+		"linkType": func(typeName string) template.HTML {
+			orig := typeName
+			prefix := ""
+			base := typeName
+
+			for {
+				if strings.HasPrefix(base, "*") {
+					prefix += "*"
+					base = base[1:]
+				} else if strings.HasPrefix(base, "[]") {
+					prefix += "[]"
+					base = base[2:]
+				} else {
+					break
+				}
+			}
+
+			if info, ok := typeIndex[base]; ok {
+				return template.HTML(fmt.Sprintf(`%s<a href="%s" class="text-brand-600 dark:text-brand-400 hover:underline">%s</a>`, prefix, info.Link, base))
+			}
+
+			if strings.Contains(base, ".") {
+				parts := strings.Split(base, ".")
+				pkgName := parts[0]
+				typeNameOnly := parts[1]
+
+				for _, imp := range imports {
+					isMatch := (imp.Alias != "" && imp.Alias == pkgName) ||
+						(imp.Alias == "" && (strings.HasSuffix(imp.Path, "/"+pkgName) || imp.Path == pkgName))
+
+					if isMatch {
+						url := "https://pkg.go.dev/" + imp.Path + "#" + typeNameOnly
+						return template.HTML(fmt.Sprintf(`%s<a href="%s" target="_blank" class="text-zinc-600 dark:text-zinc-400 hover:text-brand-600 dark:hover:text-brand-400 underline decoration-dotted underline-offset-2">%s</a>`, prefix, url, base))
+					}
+				}
+			}
+
+			return template.HTML(template.HTMLEscapeString(orig))
+		},
+		"linkTypes": func(code string) template.HTML {
+			result := template.HTMLEscapeString(code)
+			for typeName, info := range typeIndex {
+				pattern := regexp.MustCompile(`\b` + regexp.QuoteMeta(typeName) + `\b`)
+				link := fmt.Sprintf(`<a href="%s" class="text-brand-600 dark:text-brand-400 hover:underline">%s</a>`, info.Link, typeName)
+				result = pattern.ReplaceAllString(result, link)
+			}
+			return template.HTML(result)
+		},
+	}).ParseFiles(tmplPath)
+	if err != nil {
+		return err
+	}
+
+	fileGroups := make(map[string][]parser.EntityInfo)
+	for _, e := range entities {
+		f := filepath.Base(e.File)
+		if f == "" || e.File == "" {
+			f = "Globals"
+		}
+		fileGroups[f] = append(fileGroups[f], e)
+	}
+
+	seenImports := make(map[string]bool)
+	var pkgImports []parser.ImportInfo
+	for _, imp := range imports {
+		if imp.Package == pkg && !seenImports[imp.Path] {
+			seenImports[imp.Path] = true
+			pkgImports = append(pkgImports, imp)
+		}
+	}
+
+	navPackages := make([]PackageLink, len(allPackages))
+	for i, p := range allPackages {
+		navPackages[i] = PackageLink{
+			Name:      p.Name,
+			Link:      p.Link,
+			IsCurrent: p.Name == pkg,
+		}
+	}
+
+	data := PageData{
+		Title:           title,
+		Entities:        entities,
+		Imports:         pkgImports,
+		FileGroups:      fileGroups,
+		Initials:        initials,
+		PackageName:     pkg,
+		AllPackages:     navPackages,
+		TypeIndex:       typeIndex,
+		ProjectPackages: projectPackages,
+		ModulePath:      modulePath,
+	}
+
+	outputPath := filepath.Join(outputDir, packageFilename(pkg))
+	f, err := os.Create(outputPath)
+	if err != nil {
+		return err
+	}
+	defer f.Close()
+
+	return tmpl.Execute(f, data)
+}
+
+// GenerateSearchIndex creates a JSON file used for client-side documentation search.
+func GenerateSearchIndex(outputDir string, entities []parser.EntityInfo) error {
+	type SearchItem struct {
+		Name        string `json:"name"`
+		Type        string `json:"type"`
+		Description string `json:"description"`
+		Link        string `json:"link"`
+		Package     string `json:"package"`
+	}
+
+	var items []SearchItem
+	for _, e := range entities {
+		pkg := e.Package
+		if pkg == "" {
+			pkg = "main"
+		}
+		link := packageFilename(pkg) + "#" + e.Name
+
+		items = append(items, SearchItem{
+			Name:        e.Name,
+			Type:        e.Type,
+			Description: e.DescriptionRaw,
+			Link:        link,
+			Package:     pkg,
+		})
+
+		for _, m := range e.Methods {
+			items = append(items, SearchItem{
+				Name:        e.Name + "." + m.Name,
+				Type:        "method",
+				Description: m.DescriptionRaw,
+				Link:        link,
+				Package:     pkg,
+			})
+		}
+	}
+
+	f, err := os.Create(filepath.Join(outputDir, "search.json"))
+	if err != nil {
+		return err
+	}
+	defer f.Close()
+
+	return json.NewEncoder(f).Encode(items)
 }

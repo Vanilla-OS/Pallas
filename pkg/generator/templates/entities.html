@@ -1,493 +1,1348 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" class="">
 
 <head>
 	<meta charset="UTF-8">
 	<meta name="viewport" content="width=device-width, initial-scale=1.0">
-	<title>{{.Title}} - {{.PackageName}} Documentation</title>
-	<link href="https://cdn.jsdelivr.net/npm/tailwindcss@latest/dist/tailwind.min.css" rel="stylesheet">
-	<link rel="stylesheet"
-		href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.8.0/styles/atom-one-dark.min.css">
-	<link rel="stylesheet" href="static/style.css">
+	<title>{{.Title}} - API Reference</title>
+	<script src="https://cdn.tailwindcss.com?plugins=typography"></script>
+	<script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
+	<script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/languages/go.min.js"></script>
+	<script>
+		tailwind.config = {
+			darkMode: 'class',
+			theme: {
+				extend: {
+					typography: {
+						DEFAULT: {
+							css: {
+								'code::before': { content: 'none' },
+								'code::after': { content: 'none' },
+								pre: {
+									color: false,
+									backgroundColor: false,
+								},
+								code: {
+									color: false,
+									fontWeight: false,
+									backgroundColor: false,
+								},
+								'pre code': {
+									color: false,
+									backgroundColor: false,
+									padding: false,
+								}
+							}
+						}
+					},
+					colors: {
+						brand: {
+							50: '#f0f9ff',
+							100: '#e0f2fe',
+							500: '#0ea5e9',
+							600: '#0284c7',
+							900: '#0c4a6e',
+						}
+					}
+				}
+			}
+		}
+	</script>
+	<style>
+		/* Custom scrollbar */
+		::-webkit-scrollbar {
+			width: 6px;
+			height: 6px;
+		}
+
+		::-webkit-scrollbar-track {
+			background: transparent;
+		}
+
+		::-webkit-scrollbar-thumb {
+			background: #e5e7eb;
+			border-radius: 3px;
+		}
+
+		.dark ::-webkit-scrollbar-thumb {
+			background: #374151;
+		}
+
+		pre code {
+			background-color: transparent !important;
+			padding: 0 !important;
+		}
+
+		/* Force code block styling in typography */
+		.prose pre {
+			background-color: #f9fafb !important;
+			border: 1px solid #e5e7eb;
+			border-radius: 0.5rem;
+		}
+
+		.dark .prose pre {
+			background-color: #18181b !important;
+			border-color: #27272a;
+		}
+
+		/* Mobile Drawer Styles */
+		#sidebar.show {
+			transform: translateX(0);
+		}
+
+		/* Prevent horizontal jitter and force internal scroll */
+		.min-w-0 {
+			min-width: 0;
+		}
+
+		pre {
+			white-space: pre-wrap;
+			word-break: break-all;
+		}
+
+		@media (min-width: 640px) {
+			pre {
+				white-space: pre;
+				word-break: normal;
+			}
+		}
+
+		/* Smooth jump for mobile anchors */
+		.scroll-mt-24 {
+			scroll-margin-top: 6rem;
+		}
+
+		@media (max-width: 1024px) {
+			.scroll-mt-24 {
+				scroll-margin-top: 8rem;
+				/* Accounts for sticky header + subheader */
+			}
+		}
+
+		/* Animations */
+		@keyframes slideTop {
+			from {
+				transform: translateY(-20px);
+				opacity: 0;
+			}
+
+			to {
+				transform: translateY(0);
+				opacity: 1;
+			}
+		}
+
+		.animate-slide-top {
+			animation: slideTop 0.2s ease-out;
+		}
+	</style>
 </head>
 
-<body class="bg-gray-100 text-gray-800 dark:bg-gray-900 dark:text-gray-200 font-sans">
-	<div class="flex flex-col md:flex-row">
+<body class="bg-white dark:bg-zinc-950 text-zinc-900 dark:text-zinc-100 antialiased transition-colors duration-200">
 
-		<!-- Sidebar -->
-		<div id="sidebar"
-			class="w-full md:w-64 bg-gray-900 text-white p-4 flex flex-col h-screen sticky top-0 hidden md:flex">
-			<h1 class="text-2xl font-bold mb-6 text-center">{{.PackageName}}</h1>
-			<a href="index.html"
-				class="text-center mb-4 py-2 px-3 bg-blue-600 rounded-lg hover:bg-blue-500 transition">Back to Index</a>
+	<!-- Topbar -->
+	<header
+		class="fixed top-0 inset-x-0 h-16 bg-white/80 dark:bg-zinc-950/80 backdrop-blur-md border-b border-zinc-200 dark:border-zinc-800 z-[60]">
+		<div class="max-w-screen-2xl mx-auto px-4 h-full flex items-center justify-between">
+			<div class="flex items-center gap-3">
+				<button onclick="toggleMobileMenu()"
+					class="lg:hidden p-2 -ml-2 text-zinc-500 hover:text-zinc-900 dark:hover:text-white transition-colors">
+					<svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+						<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+							d="M4 6h16M4 12h16M4 18h16"></path>
+					</svg>
+				</button>
+				<a href="index.html" class="flex items-center gap-3 group">
+					<div
+						class="w-8 h-8 rounded-lg bg-gradient-to-br from-zinc-900 to-zinc-700 dark:from-white dark:to-zinc-300 flex items-center justify-center shadow-sm group-hover:shadow-md transition-all">
+						<span
+							class="text-white dark:text-zinc-900 font-bold text-xs tracking-wider">{{.Initials}}</span>
+					</div>
+					<span
+						class="font-semibold text-sm tracking-tight group-hover:text-zinc-600 dark:group-hover:text-zinc-300 transition-colors inline-block">{{.Title}}</span>
+				</a>
+				<span
+					class="px-2 py-0.5 rounded-full bg-zinc-100 dark:bg-zinc-900 text-[10px] font-medium text-zinc-500 uppercase tracking-wider border border-zinc-200 dark:border-zinc-800">API</span>
+			</div>
 
-			<!-- Search bar -->
-			<input type="text" id="function-search" placeholder="Search entities..."
-				class="mb-4 px-2 py-1 rounded text-white bg-white bg-opacity-20 focus:outline-none focus:ring-2 focus:ring-blue-600">
+			<div class="flex items-center gap-2 md:gap-4">
+				<button onclick="toggleSearch()"
+					class="flex items-center gap-2 px-3 py-1.5 rounded-md bg-zinc-50 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 text-xs text-zinc-500 hover:border-zinc-300 dark:hover:border-zinc-700 transition-colors w-10 md:w-64 justify-center md:justify-start">
+					<svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+						<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+							d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
+					</svg>
+					<span class="hidden md:inline">Search API...</span>
+					<span
+						class="ml-auto text-[10px] border border-zinc-200 dark:border-zinc-800 rounded px-1 hidden md:inline">⌘K</span>
+				</button>
 
-			<!-- Grouped entities -->
-			<div id="grouped-entities" class="flex-grow overflow-y-auto">
-				{{if .HasFunctions}}
-				<div class="mb-4 border-b border-gray-700 pb-4">
-					<button
-						class="w-full text-left text-lg font-semibold py-2 px-3 bg-gray-800 hover:bg-gray-700 transition rounded-lg focus:outline-none flex items-center justify-between sticky top-0 z-10"
-						onclick="toggleGroup('functions')">
-						<span>Functions</span>
-						<span class="text-xs">▼</span>
+				<nav class="hidden md:flex items-center gap-6 text-sm font-medium text-zinc-600 dark:text-zinc-400">
+					<a href="index.html"
+						class="hover:text-zinc-900 dark:hover:text-zinc-100 transition-colors">Overview</a>
+				</nav>
+
+				<div class="hidden sm:block w-px h-4 bg-zinc-200 dark:bg-zinc-800"></div>
+
+				<button onclick="toggleTheme()"
+					class="p-2 rounded-md hover:bg-zinc-100 dark:hover:bg-zinc-900 text-zinc-500 transition-colors">
+					<svg id="moon-icon" class="w-4 h-4 hidden" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+						<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+							d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z">
+						</path>
+					</svg>
+					<svg id="sun-icon" class="w-4 h-4 hidden" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+						<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+							d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z">
+						</path>
+					</svg>
+				</button>
+			</div>
+		</div>
+	</header>
+
+	<div class="flex max-w-screen-2xl mx-auto">
+		<!-- Sidebar Backdrop -->
+		<div id="sidebar-backdrop" class="fixed inset-0 bg-black/50 backdrop-blur-sm z-40 hidden lg:hidden"
+			onclick="toggleMobileMenu()"></div>
+
+		<!-- Sidebar Container -->
+		<aside id="sidebar"
+			class="w-72 fixed inset-y-0 left-0 pt-24 pb-8 px-4 border-r border-zinc-200 dark:border-zinc-800 overflow-y-auto hidden lg:block bg-white dark:bg-zinc-950 z-40 transform transition-transform duration-300 -translate-x-full lg:translate-x-0 lg:ml-[max(0px,calc(50%-48rem))]">
+			<nav class="space-y-8">
+				<!-- Search (Mobile Only) -->
+				<div class="lg:hidden mb-6">
+					<button onclick="toggleSearch()"
+						class="flex items-center gap-2 w-full px-3 py-2 rounded-lg bg-zinc-50 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 text-xs text-zinc-500 shadow-sm">
+						<svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+							<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+								d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
+						</svg>
+						<span>Search symbols...</span>
 					</button>
-					<ul id="functions" class="mt-2">
-						{{range .Entities}}
-						{{if eq .Type "function"}}
-						<li class="mb-2">
-							<a href="#{{.Name}}"
-								title="{{if .DescriptionRaw}}{{.DescriptionRaw}}{{else if .DeprecationNoteRaw}}Deprecated: {{.DeprecationNoteRaw}}{{else}}No description{{end}}"
-								class="block py-1 px-2 rounded hover:bg-gray-700 transition">{{.Name}}</a>
-						</li>
-						{{end}}
-						{{end}}
-					</ul>
 				</div>
-				{{end}}
+				<!-- Packages Navigation -->
+				<div>
+					<h3
+						class="font-semibold text-xs text-zinc-900 dark:text-zinc-100 mb-4 uppercase tracking-wider px-2">
+						Packages</h3>
+					<div class="space-y-0.5">
+						{{range .AllPackages}}
+						<a href="{{.Link}}"
+							class="group flex items-center gap-2 px-3 py-1.5 text-sm rounded-md transition-all {{if .IsCurrent}}bg-brand-50 dark:bg-brand-900/20 text-brand-700 dark:text-brand-300 font-medium{{else}}text-zinc-600 dark:text-zinc-400 hover:bg-zinc-100 dark:hover:bg-zinc-800 hover:text-zinc-900 dark:hover:text-zinc-100{{end}}">
+							<svg class="w-4 h-4 {{if .IsCurrent}}text-brand-500{{else}}text-zinc-400 group-hover:text-zinc-500{{end}}"
+								fill="none" stroke="currentColor" viewBox="0 0 24 24">
+								<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+									d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z">
+								</path>
+							</svg>
+							{{.Name}}
+						</a>
+						{{end}}
+					</div>
+				</div>
 
-				{{if .HasStructs}}
-				<div class="mb-4 border-b border-gray-700 pb-4">
-					<button
-						class="w-full text-left text-lg font-semibold py-2 px-3 bg-gray-800 hover:bg-gray-700 transition rounded-lg focus:outline-none flex items-center justify-between sticky top-0 z-10"
-						onclick="toggleGroup('structs')">
-						<span>Structs</span>
-						<span class="text-xs">▼</span>
-					</button>
-					<ul id="structs" class="mt-2">
-						{{range .Entities}}
-						{{if eq .Type "struct"}}
-						{{ $structName := .Name }}
-						<li class="mb-2">
-							<a href="#{{.Name}}"
-								title="{{if .DescriptionRaw}}{{.DescriptionRaw}}{{else if .DeprecationNoteRaw}}Deprecated: {{.DeprecationNoteRaw}}{{else}}No description{{end}}"
-								class="block py-1 px-2 rounded hover:bg-gray-700 transition">{{.Name}}</a>
-							{{if .Methods}}
-							<ul class="ml-4 mt-1">
-								{{range .Methods}}
-								<li class="mb-1">
-									<a href="#{{$structName}}.{{.Name}}"
-										class="block py-1 px-2 rounded hover:bg-gray-600 transition">
+				<!-- Grouped by File -->
+				<div>
+					<h3
+						class="font-semibold text-xs text-zinc-900 dark:text-zinc-100 mb-4 uppercase tracking-wider px-2">
+						Files</h3>
+					<div class="space-y-1">
+						{{range $filename, $entities := .FileGroups}}
+						<div class="group">
+							<h4 class="px-2 py-1.5 text-xs font-semibold text-zinc-600 dark:text-zinc-400 uppercase tracking-wider flex items-center justify-between cursor-pointer hover:text-zinc-900 dark:hover:text-zinc-200"
+								onclick="this.nextElementSibling.classList.toggle('hidden')">
+								{{$filename}}
+								<svg class="w-3 h-3 text-zinc-400" fill="none" stroke="currentColor"
+									viewBox="0 0 24 24">
+									<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+										d="M19 9l-7 7-7-7"></path>
+								</svg>
+							</h4>
+							<ul class="space-y-0.5 ml-0.5 border-l border-zinc-200 dark:border-zinc-800">
+								{{range $entities}}
+								<li>
+									<a href="#{{.Name}}"
+										class="group flex items-center gap-2 px-3 py-1 text-sm text-zinc-600 dark:text-zinc-400 hover:text-brand-600 dark:hover:text-brand-400 hover:bg-zinc-50 dark:hover:bg-zinc-900/50 rounded transition-all truncate">
+										<span class="flex-shrink-0 w-4 h-4 rounded-sm flex items-center justify-center text-[10px] font-bold 
+                                            {{if eq .Type " function"}}bg-blue-100 text-blue-600 dark:bg-blue-900/30
+											dark:text-blue-400 {{else if eq .Type "struct" }}bg-purple-100
+											text-purple-600 dark:bg-purple-900/30 dark:text-purple-400 {{else if eq
+											.Type "interface" }}bg-emerald-100 text-emerald-600 dark:bg-emerald-900/30
+											dark:text-emerald-400 {{else if eq .Type "type" }}bg-orange-100
+											text-orange-600 dark:bg-orange-900/30 dark:text-orange-400 {{else if eq
+											.Type "constant" }}bg-zinc-100 text-zinc-600 dark:bg-zinc-800
+											dark:text-zinc-400{{end}}">
+											{{if eq .Type "function"}}F{{else if eq .Type "struct"}}S{{else if eq .Type
+											"interface"}}I{{else if eq .Type "type"}}T{{else if eq .Type
+											"constant"}}C{{else}}E{{end}}
+										</span>
 										{{.Name}}
 									</a>
 								</li>
 								{{end}}
 							</ul>
-							{{end}}
-						</li>
-						{{end}}
-						{{end}}
-					</ul>
-				</div>
-				{{end}}
-
-				{{if .HasInterfaces}}
-				<div class="mb-4 border-b border-gray-700 pb-4">
-					<button
-						class="w-full text-left text-lg font-semibold py-2 px-3 bg-gray-800 hover:bg-gray-700 transition rounded-lg focus:outline-none flex items-center justify-between sticky top-0 z-10"
-						onclick="toggleGroup('interfaces')">
-						<span>Interfaces</span>
-						<span class="text-xs">▼</span>
-					</button>
-					<ul id="interfaces" class="mt-2">
-						{{range .Entities}}
-						{{if eq .Type "interface"}}
-						<li class="mb-2">
-							<a href="#{{.Name}}"
-								title="{{if .DescriptionRaw}}{{.DescriptionRaw}}{{else if .DeprecationNoteRaw}}Deprecated: {{.DeprecationNoteRaw}}{{else}}No description{{end}}"
-								class="block py-1 px-2 rounded hover:bg-gray-700 transition">{{.Name}}</a>
-						</li>
-						{{end}}
-						{{end}}
-					</ul>
-				</div>
-				{{end}}
-
-				{{if .HasTypes}}
-				<div class="pb-4 border-b border-gray-700">
-					<button
-						class="w-full text-left text-lg font-semibold py-2 px-3 bg-gray-800 hover:bg-gray-700 transition rounded-lg focus:outline-none flex items-center justify-between sticky top-0 z-10"
-						onclick="toggleGroup('types')">
-						<span>Types</span>
-						<span class="text-xs">▼</span>
-					</button>
-					<ul id="types" class="mt-2">
-						{{range .Entities}}
-						{{if eq .Type "type"}}
-						<li class="mb-2">
-							<a href="#{{.Name}}"
-								class="block py-1 px-2 rounded hover:bg-gray-700 transition">{{.Name}}</a>
-						</li>
-						{{end}}
-						{{end}}
-					</ul>
-				</div>
-				{{end}}
-
-				{{if .HasImports}}
-				<div class="pb-4">
-					<button
-						class="w-full text-left text-lg font-semibold py-2 px-3 bg-gray-800 hover:bg-gray-700 transition rounded-lg focus:outline-none flex items-center justify-between sticky top-0 z-10"
-						onclick="toggleGroup('imports')">
-						<span>Imports</span>
-						<span class="text-xs">▼</span>
-					</button>
-					<ul id="imports" class="mt-2">
-						{{range .Imports}}
-						<li class="mb-2">
-							<a href="#{{.URL}}"
-								class="block py-1 px-2 rounded hover:bg-gray-700 transition">{{.Path}}</a>
-						</li>
-						{{end}}
-					</ul>
-				</div>
-				{{end}}
-			</div>
-
-			<div class="mt-6 text-center text-gray-400 text-sm">
-				<p>Generated by <a href="https://github.com/vanilla-os/pallas">Pallas</a></p>
-			</div>
-		</div>
-
-		<!-- Hamburger Menu Button for Mobile -->
-		<div id="hamburger" class="fixed bottom-4 right-4 md:hidden">
-			<button id="menu-toggle" class="bg-gray-900 text-white p-3 rounded-full focus:outline-none">
-				<svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"
-					xmlns="http://www.w3.org/2000/svg">
-					<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16">
-					</path>
-				</svg>
-			</button>
-		</div>
-
-		<!-- Main content -->
-		<div class="flex-grow p-4 overflow-y-auto md:p-8">
-			{{range .Entities}}
-			<div id="{{.Name}}" class="bg-white dark:bg-gray-800 shadow-lg rounded-lg p-6 mb-8">
-				<h2 class="text-2xl font-semibold mb-4">
-					{{.Name}}
-					{{if eq .Type "function"}}
-					<span class="text-sm bg-blue-500 text-white rounded-full px-2 py-1">{{.Type}}</span>
-					{{else if eq .Type "struct"}}
-					<span class="text-sm bg-green-500 text-white rounded-full px-2 py-1">{{.Type}}</span>
-					{{else if eq .Type "interface"}}
-					<span class="text-sm bg-yellow-500 text-white rounded-full px-2 py-1">{{.Type}}</span>
-					{{else if eq .Type "type"}}
-					<span class="text-sm bg-purple-500 text-white rounded-full px-2 py-1">{{.Type}}</span>
-					{{end}}
-				</h2>
-
-				<p class="mb-4 text-gray-700 dark:text-gray-300">{{.Description}}</p>
-
-				{{if .Example}}
-				<h3 class="font-bold mt-4 mb-2">Example:</h3>
-				<pre
-					class="bg-gray-800 dark:bg-gray-700 p-4 rounded-lg overflow-x-auto"><code class="hljs language-go">{{.Example}}</code></pre>
-				{{end}}
-
-				{{if .Notes}}
-				<h3 class="font-bold mt-4 mb-2">Notes:</h3>
-				<div class="bg-yellow-100 dark:bg-yellow-700 p-4 rounded-lg">
-					{{.Notes}}
-				</div>
-				{{end}}
-
-				{{if .DeprecationNote}}
-				<h3 class="font-bold mt-4 mb-2">Deprecated:</h3>
-				<div class="bg-red-100 dark:bg-red-700 p-4 rounded-lg">
-					{{.DeprecationNote}}
-				</div>
-				{{end}}
-
-				{{if eq .Type "function"}}
-
-				{{if .Parameters}}
-				<h3 class="font-bold mt-4 mb-2">Parameters:</h3>
-				<ul class="list-disc ml-6 text-gray-700 dark:text-gray-300">
-					{{range .Parameters}}
-					<li>{{.}}</li>
-					{{end}}
-				</ul>
-				{{end}}
-
-				{{if .Returns}}
-				<h3 class="font-bold mt-4 mb-2">Returns:</h3>
-				<ul class="list-disc ml-6 text-gray-700 dark:text-gray-300">
-					{{range .Returns}}
-					{{if eq . "error"}}
-					<li><span class="bg-red-500 text-white rounded px-1">error</span></li>
-					{{else}}
-					<li>{{.}}</li>
-					{{end}}
-					{{end}}
-				</ul>
-				{{end}}
-
-				{{if .References}}
-				<h3 class="font-bold mt-4 mb-2">References:</h3>
-				<ul class="list-disc ml-6 text-gray-700 dark:text-gray-300">
-					{{range .References}}
-					<li>
-						<a href="{{.PackageURL}}.html#{{.Name}}" class="hover:underline">{{.Name}}</a>
-						<span class="text-sm text-gray-500">({{.PackagePath}})</span>
-					</li>
-					{{end}}
-				</ul>
-				{{end}}
-
-				<details class="mt-4">
-					<summary class="cursor-pointer font-semibold text-blue-600 dark:text-blue-400">Show/Hide Function
-						Body</summary>
-					<pre
-						class="mt-2 bg-gray-800 dark:bg-gray-700 p-4 rounded-lg overflow-x-auto"><code class="hljs language-go">{{.Body}}</code></pre>
-				</details>
-				{{end}}
-
-				{{if eq .Type "struct"}}
-				{{ $structName := .Name }}
-
-				{{if .Fields}}
-				<h3 class="font-bold mt-4 mb-2">Fields:</h3>
-				<ul class="list-disc ml-6 text-gray-700 dark:text-gray-300">
-					{{range .Fields}}
-					<li>{{.Name}} <span class="text-sm text-gray-500">({{.Type}})</span>{{if .Tag}} - <span
-							class="text-xs text-gray-400">{{.Tag}}</span>{{end}}</li>
-					{{end}}
-				</ul>
-				{{end}}
-
-				{{if .Implements}}
-				<h3 class="font-bold mt-4 mb-2">Implements:</h3>
-				<ul class="list-disc ml-6 text-gray-700 dark:text-gray-300">
-					{{range .Implements}}
-					<li>
-						<b>{{.InterfaceName}}</b> from <b>{{.Package}}</b>
-					</li>
-					{{end}}
-				</ul>
-				{{end}}
-
-				{{if .Methods}}
-				<h3 class="font-bold mt-4 mb-2">Methods:</h3>
-				<div class="flex gap-2 flex-col">
-					{{range .Methods}}
-					<div class=" bg-gray-100 dark:bg-gray-700 p-4 rounded-lg">
-						<h4 class="font-semibold" id="{{$structName}}.{{.Name}}">{{.Name}}</h4>
-						<p class="mb-4 text-gray-700 dark:text-gray-300">{{.Description}}</p>
-
-						{{if .Parameters}}
-						<hr class="my-2">
-						<b class="text-gray-500 dark:text-gray-400">Parameters:</b>
-						<ul class="list-disc ml-6 text-gray-700 dark:text-gray-300">
-							{{range .Parameters}}
-							<li>{{.}}</li>
-							{{end}}
-						</ul>
-						{{end}}
-
-						{{if .Returns}}
-						<hr class="my-2">
-						<b class="text-gray-500 dark:text-gray-400">Returns:</b>
-						<ul class="list-disc ml-6 text-gray-700 dark:text-gray-300">
-							{{range .Returns}}
-							{{if eq . "error"}}
-							<li><span class="bg-red-500 text-white rounded px-1">error</span></li>
-							{{else}}
-							<li>{{.}}</li>
-							{{end}}
-							{{end}}
-						</ul>
-						{{end}}
-
-						{{if .Example}}
-						<h3 class="font-bold mt-4 mb-2">Example:</h3>
-						<pre
-							class="bg-gray-800 dark:bg-gray-700 p-4 rounded-lg overflow-x-auto"><code class="hljs language-go">{{.Example}}</code></pre>
-						{{end}}
-
-						{{if .Notes}}
-						<h3 class="font-bold mt-4 mb-2">Notes:</h3>
-						<div class="bg-yellow-100 dark:bg-yellow-700 p-4 rounded-lg">
-							{{.Notes}}
 						</div>
 						{{end}}
+					</div>
+				</div>
+			</nav>
+		</aside>
 
-						{{if .DeprecationNote}}
-						<h3 class="font-bold mt-4 mb-2">Deprecated:</h3>
-						<div class="bg-red-100 dark:bg-red-700 p-4 rounded-lg">
-							{{.DeprecationNote}}
+		<!-- Main Content -->
+		<main class="flex-1 lg:ml-72 px-4 sm:px-6 lg:px-12 pt-16 lg:pt-24 pb-6 lg:py-12 min-h-screen min-w-0">
+			<div class="max-w-4xl mx-auto">
+				<!-- Mobile Breadcrumbs / Context Header -->
+				<div
+					class="sticky top-16 -mx-4 sm:-mx-6 px-4 sm:px-6 py-3 bg-white/95 dark:bg-zinc-950/95 backdrop-blur-md border-b border-zinc-200 dark:border-zinc-800 z-30 lg:hidden flex items-center justify-between transition-all shadow-sm">
+					<div class="flex items-center gap-2 text-xs font-medium text-zinc-500 overflow-hidden">
+						<span class="truncate">{{.PackageName}}</span>
+						<svg class="w-2 h-2 flex-shrink-0 opacity-40" fill="none" stroke="currentColor"
+							viewBox="0 0 24 24">
+							<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7">
+							</path>
+						</svg>
+						<span class="text-zinc-900 dark:text-zinc-100 font-bold truncate">API</span>
+					</div>
+					<button onclick="toggleMobileJump()"
+						class="flex items-center gap-1.5 px-2.5 py-1 rounded bg-zinc-100 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 text-[10px] font-bold text-zinc-600 dark:text-zinc-400 uppercase tracking-tight">
+						Quick Jump
+						<svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+							<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7">
+							</path>
+						</svg>
+					</button>
+				</div>
+
+				<div class="mt-8 lg:mt-0">
+					<!-- Header Section -->
+					<div id="mobile-jump"
+						class="fixed inset-x-0 bottom-0 top-[113px] bg-white/95 dark:bg-zinc-950/95 backdrop-blur-sm z-[35] hidden lg:hidden animate-in slide-in-from-top duration-300">
+						<div class="p-6 overflow-y-auto h-full space-y-8">
+							{{range $filename, $entities := .FileGroups}}
+							<div>
+								<h4
+									class="text-[10px] font-bold text-zinc-400 dark:text-zinc-600 uppercase tracking-[0.2em] mb-3">
+									{{$filename}}</h4>
+								<div class="grid grid-cols-1 gap-1">
+									{{range $entities}}
+									<a href="#{{.Name}}" onclick="toggleMobileJump()"
+										class="flex items-center gap-3 p-2 rounded-lg hover:bg-zinc-100 dark:hover:bg-zinc-900 transition-colors">
+										<div class="w-6 h-6 rounded flex items-center justify-center text-[10px] font-bold shadow-sm border
+                                        {{if eq .Type " function"}}bg-blue-50 text-blue-600 border-blue-100
+											dark:bg-blue-900/30 dark:text-blue-400 dark:border-blue-800 {{else if eq
+											.Type "struct" }}bg-purple-50 text-purple-600 border-purple-100
+											dark:bg-purple-900/30 dark:text-purple-400 dark:border-purple-800 {{else if
+											eq .Type "interface" }}bg-emerald-50 text-emerald-600 border-emerald-100
+											dark:bg-emerald-900/30 dark:text-emerald-400 dark:border-emerald-800 {{else
+											if eq .Type "type" }}bg-orange-50 text-orange-600 border-orange-100
+											dark:bg-orange-900/30 dark:text-orange-400 dark:border-orange-800 {{else if
+											eq .Type "constant" }}bg-zinc-50 text-zinc-600 border-zinc-100
+											dark:bg-zinc-800 dark:text-zinc-400 dark:border-zinc-700{{end}}">
+											{{if eq .Type "function"}}F{{else if eq .Type "struct"}}S{{else if eq .Type
+											"interface"}}I{{else if eq .Type "type"}}T{{else if eq .Type
+											"constant"}}C{{end}}
+										</div>
+										<span class="text-sm font-mono font-medium truncate">{{.Name}}</span>
+									</a>
+									{{end}}
+								</div>
+							</div>
+							{{end}}
 						</div>
-						{{end}}
-
-						{{if .References}}
-						<h3 class="font-bold mt-4 mb-2">References:</h3>
-						<ul class="list-disc ml-6 text-gray-700 dark:text-gray-300">
-							{{range .References}}
-							<li>
-								<a href="{{.PackageURL}}.html#{{.Name}}" class="hover:underline">{{.Name}}</a>
-								<span class="text-sm text-gray-500">({{.PackagePath}})</span>
-							</li>
-							{{end}}
-						</ul>
-						{{end}}
-
-						{{if .Body}}
-						<hr class="my-2">
-						<details class="mt-4">
-							<summary class="cursor-pointer font-semibold text-blue-600 dark:text-blue-400">Show/Hide
-								Method Body</summary>
-							<pre
-								class="mt-2 bg-gray-800 dark:bg-gray-700 p-4 rounded-lg overflow-x-auto"><code class="hljs language-go">{{.Body}}</code></pre>
-						</details>
-						{{end}}
-
 					</div>
-					{{end}}
-				</div>
-				{{end}}
 
-				{{end}}
+					<div class="lg:flex lg:items-center lg:justify-between mb-8">
+						<div>
+							<div class="flex items-center gap-3 mb-2">
+								<h1 class="text-2xl sm:text-3xl font-bold text-zinc-900 dark:text-zinc-50">
+									{{.PackageName}}
+								</h1>
+								<span
+									class="px-2.5 py-0.5 rounded-md text-[10px] font-bold bg-zinc-100 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-400 border border-zinc-200 dark:border-zinc-700 uppercase tracking-tight">package</span>
+							</div>
+							<p class="text-zinc-500 text-base sm:text-lg">API reference for the <code
+									class="text-sm bg-zinc-100 dark:bg-zinc-800 px-1.5 py-0.5 rounded">{{.PackageName}}</code>
+								package.</p>
+						</div>
+					</div>
 
-				{{if eq .Type "interface"}}
-
-				{{if .Methods}}
-				<h3 class="font-bold mt-4 mb-2">Methods:</h3>
-				<div class="flex gap-2 flex-col">
-					{{range .Methods}}
-					<div class="bg-gray-100 dark:bg-gray-700 p-4 rounded-lg">
-						<h4 class="font-semibold">{{.Name}}</h4>
-						{{if .Parameters}}
-						<hr class="my-2">
-						<b class="text-gray-500 dark:text-gray-400">Parameters:</b>
-						<ul class="list-disc ml-6 text-gray-700 dark:text-gray-300">
-							{{range .Parameters}}
-							<li>{{.}}</li>
-							{{end}}
-						</ul>
-						{{end}}
-
-						{{if .Returns}}
-						<hr class="my-2">
-						<b class="text-gray-500 dark:text-gray-400">Returns:</b>
-						<ul class="list-disc ml-6 text-gray-700 dark:text-gray-300">
-							{{range .Returns}}
-							{{if eq . "error"}}
-							<li><span class="bg-red-500 text-white rounded px-1">error</span></li>
+					{{if .Imports}}
+					<!-- Imports Section -->
+					<div class="mb-12">
+						<div class="flex items-center gap-2 mb-4 cursor-pointer"
+							onclick="this.nextElementSibling.classList.toggle('hidden')">
+							<svg class="w-4 h-4 text-zinc-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+								<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+									d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"></path>
+							</svg>
+							<h2 class="text-sm font-semibold text-zinc-700 dark:text-zinc-300 uppercase tracking-wider">
+								Imports</h2>
+							<span class="text-xs text-zinc-400">({{len .Imports}})</span>
+							<svg class="w-3 h-3 text-zinc-400 ml-auto" fill="none" stroke="currentColor"
+								viewBox="0 0 24 24">
+								<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+									d="M19 9l-7 7-7-7">
+								</path>
+							</svg>
+						</div>
+						<div
+							class="grid grid-cols-1 md:grid-cols-2 gap-2 p-4 rounded-lg bg-zinc-50 dark:bg-zinc-900/50 border border-zinc-200 dark:border-zinc-800">
+							{{range .Imports}}
+							{{if isInternalImport .Path}}
+							<a href="{{internalImportLink .Path}}"
+								class="group flex items-center gap-2 px-3 py-2 rounded-md hover:bg-white dark:hover:bg-zinc-800 transition-colors border border-transparent hover:border-zinc-200 dark:hover:border-zinc-700">
+								<span
+									class="flex-shrink-0 w-6 h-6 rounded flex items-center justify-center bg-purple-100 dark:bg-purple-900/30 text-purple-600 dark:text-purple-400 text-[10px] font-bold">INT</span>
+								<code
+									class="text-xs font-mono text-zinc-700 dark:text-zinc-300 truncate group-hover:text-brand-600 dark:group-hover:text-brand-400">{{.Path}}</code>
+								<svg class="w-3 h-3 text-zinc-400 opacity-0 group-hover:opacity-100 ml-auto flex-shrink-0 transition-opacity"
+									fill="none" stroke="currentColor" viewBox="0 0 24 24">
+									<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+										d="M9 5l7 7-7 7">
+									</path>
+								</svg>
+							</a>
 							{{else}}
-							<li>{{.}}</li>
+							<a href="{{pkgGoDevURL .Path}}" target="_blank" rel="noopener noreferrer"
+								class="group flex items-center gap-2 px-3 py-2 rounded-md hover:bg-white dark:hover:bg-zinc-800 transition-colors border border-transparent hover:border-zinc-200 dark:hover:border-zinc-700">
+								{{if isStdLib .Path}}
+								<span
+									class="flex-shrink-0 w-6 h-6 rounded flex items-center justify-center bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 text-[10px] font-bold">STD</span>
+								{{else}}
+								<span
+									class="flex-shrink-0 w-6 h-6 rounded flex items-center justify-center bg-emerald-100 dark:bg-emerald-900/30 text-emerald-600 dark:text-emerald-400 text-[10px] font-bold">PKG</span>
+								{{end}}
+								<code
+									class="text-xs font-mono text-zinc-700 dark:text-zinc-300 truncate group-hover:text-brand-600 dark:group-hover:text-brand-400">{{.Path}}</code>
+								<svg class="w-3 h-3 text-zinc-400 opacity-0 group-hover:opacity-100 ml-auto flex-shrink-0 transition-opacity"
+									fill="none" stroke="currentColor" viewBox="0 0 24 24">
+									<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+										d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14">
+									</path>
+								</svg>
+							</a>
 							{{end}}
 							{{end}}
-						</ul>
-						{{end}}
+						</div>
 					</div>
 					{{end}}
+
+					<div class="space-y-16">
+						{{range .Entities}}
+						<section id="{{.Name}}" class="scroll-mt-24">
+							<div class="border-b border-zinc-200 dark:border-zinc-800 pb-8">
+								<div class="flex items-center gap-4 mb-4">
+									<div class="flex-shrink-0 w-10 h-10 rounded-lg flex items-center justify-center text-sm font-bold shadow-sm border
+                                    {{if eq .Type " function"}}bg-blue-50 text-blue-600 border-blue-200
+										dark:bg-blue-900/30 dark:text-blue-400 dark:border-blue-800 {{else if eq
+										.Type "struct" }}bg-purple-50 text-purple-600 border-purple-200
+										dark:bg-purple-900/30 dark:text-purple-400 dark:border-purple-800 {{else if eq
+										.Type "interface" }}bg-emerald-50 text-emerald-600 border-emerald-200
+										dark:bg-emerald-900/30 dark:text-emerald-400 dark:border-emerald-800 {{else if
+										eq .Type "type" }}bg-orange-50 text-orange-600 border-orange-200
+										dark:bg-orange-900/30 dark:text-orange-400 dark:border-orange-800 {{else if eq
+										.Type "constant" }}bg-zinc-50 text-zinc-600 border-zinc-200 dark:bg-zinc-800
+										dark:text-zinc-400 dark:border-zinc-700{{end}}">
+										{{if eq .Type "function"}}F{{else if eq .Type "struct"}}S{{else if eq .Type
+										"interface"}}I{{else if eq .Type "type"}}T{{else if eq .Type
+										"constant"}}C{{else}}E{{end}}
+									</div>
+									<div>
+										<div class="flex items-center gap-2 mb-0.5">
+											<span
+												class="text-[10px] uppercase tracking-widest font-bold text-zinc-400 dark:text-zinc-500">{{.Type}}</span>
+											{{if .Implements}}
+											<span class="text-zinc-300 dark:text-zinc-700 mx-1">•</span>
+											<div class="flex items-center gap-1.5">
+												<span
+													class="text-[10px] font-bold text-zinc-400 dark:text-zinc-500 uppercase">Implements:</span>
+												{{range .Implements}}
+												<a href="{{packageLink .Package}}#{{.InterfaceName}}"
+													class="text-[10px] font-medium text-emerald-600 dark:text-emerald-400 hover:underline decoration-dotted">{{.InterfaceName}}</a>
+												{{end}}
+											</div>
+											{{end}}
+										</div>
+										<h2
+											class="text-2xl font-bold text-zinc-900 dark:text-zinc-50 font-mono tracking-tight">
+											{{.Name}}</h2>
+									</div>
+								</div>
+
+								{{if .DescriptionRaw}}
+								<div
+									class="prose prose-zinc dark:prose-invert max-w-none text-sm text-zinc-600 dark:text-zinc-400 mb-6">
+									{{.Description | html}}
+								</div>
+								{{end}}
+
+								<!-- Parameters & Returns -->
+								{{if or .Parameters .Returns}}
+								<div
+									class="mb-8 grid grid-cols-1 md:grid-cols-2 gap-6 bg-zinc-50/50 dark:bg-zinc-900/10 p-5 rounded-2xl border border-zinc-200/50 dark:border-zinc-800/50 shadow-sm overflow-x-auto">
+									{{if .Parameters}}
+									<div>
+										<h4
+											class="text-[10px] font-bold text-zinc-400 dark:text-zinc-500 uppercase mb-4 tracking-wider flex items-center gap-2">
+											<div class="w-1.5 h-1.5 rounded-full bg-blue-500/50"></div>
+											Parameters
+										</h4>
+										<div class="space-y-3">
+											{{range .Parameters}}
+											{{$p := splitParam .}}
+											<div class="flex items-start gap-3 group/p">
+												{{if $p.Name}}
+												<span
+													class="text-zinc-900 dark:text-zinc-100 font-mono text-xs font-bold bg-white dark:bg-zinc-800 px-1.5 py-0.5 rounded border border-zinc-200 dark:border-zinc-700 shadow-sm">{{$p.Name}}</span>
+												{{end}}
+												<div class="flex-1">
+													<div class="font-mono text-xs">{{$p.Type | linkType}}</div>
+												</div>
+											</div>
+											{{end}}
+										</div>
+									</div>
+									{{end}}
+									{{if .Returns}}
+									<div>
+										<h4
+											class="text-[10px] font-bold text-zinc-400 dark:text-zinc-500 uppercase mb-4 tracking-wider flex items-center gap-2">
+											<div class="w-1.5 h-1.5 rounded-full bg-emerald-500/50"></div>
+											Returns
+										</h4>
+										<div class="space-y-3">
+											{{range .Returns}}
+											{{$p := splitParam .}}
+											<div class="flex items-start gap-3 group/r">
+												{{if $p.Name}}
+												<span
+													class="text-zinc-700 dark:text-zinc-300 font-mono text-xs font-bold">{{$p.Name}}</span>
+												{{end}}
+												<div class="flex-1">
+													<div class="font-mono text-xs">{{$p.Type | linkType}}</div>
+												</div>
+											</div>
+											{{end}}
+										</div>
+									</div>
+									{{end}}
+								</div>
+								{{end}}
+
+								<!-- Signature -->
+								<div
+									class="relative group mb-8 rounded-xl border border-zinc-200 dark:border-zinc-800 bg-zinc-50 dark:bg-zinc-900/50 overflow-hidden transition-all hover:border-zinc-300 dark:hover:border-zinc-700">
+									<div
+										class="flex items-center justify-between px-4 py-2 border-b border-zinc-200 dark:border-zinc-800 bg-zinc-100/50 dark:bg-zinc-900/50">
+										<span class="text-xs font-mono text-zinc-500">
+											{{if .File}}{{.File}}{{if
+											.LineStart}}:{{.LineStart}}-{{.LineEnd}}{{end}}{{else}}Declaration{{end}}
+										</span>
+										<div class="flex items-center gap-2">
+											<button onclick="toggleFullscreen('wrapper-{{.Name}}')"
+												class="p-1 px-1.5 rounded bg-white dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 text-zinc-400 hover:text-brand-600 dark:hover:text-brand-400 transition-all opacity-0 group-hover:opacity-100 hover:scale-105 shadow-sm">
+												<svg class="w-3.5 h-3.5" fill="none" stroke="currentColor"
+													viewBox="0 0 24 24">
+													<path stroke-linecap="round" stroke-linejoin="round"
+														stroke-width="2"
+														d="M4 8V4m0 0h4M4 4l5 5m11-1V4m0 0h-4m4 0l-5 5M4 16v4m0 0h4m-4 0l5-5m11 5l-5-5m5 5v-4m0 4h-4">
+													</path>
+												</svg>
+											</button>
+										</div>
+									</div>
+									<div class="relative">
+										{{$lineCount := lineCount .Body}}
+										{{if not .Body}}
+										{{$lineCount = 1}}
+										{{if .Signature}}{{$lineCount = lineCount .Signature}}{{end}}
+										{{end}}
+
+										<div id="wrapper-{{.Name}}"
+											class="{{if gt $lineCount 10}}max-h-64{{else}}h-auto{{end}} overflow-hidden relative transition-[max-height] duration-500 ease-in-out">
+											<pre
+												class="not-prose !bg-transparent !m-0 !p-4 custom-scrollbar overflow-x-auto text-sm font-mono"><code id="code-{{.Name}}" class="language-go !whitespace-pre">{{if .Signature}}{{.Signature}}
+{{if .Body}}
+{{.Body}}{{end}}{{else}}{{.Name}} ...{{end}}</code></pre>
+										</div>
+
+										{{if gt $lineCount 10}}
+										<!-- Fade Overlay & Expand Button -->
+										<div id="overlay-{{.Name}}"
+											class="absolute inset-x-0 bottom-0 h-24 bg-gradient-to-t from-zinc-50 dark:from-zinc-950 to-transparent flex items-end justify-center pb-4 transition-opacity duration-300">
+											<button onclick="toggleCode('{{.Name}}')"
+												class="px-4 py-1.5 rounded-full bg-white dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 text-xs font-medium text-zinc-600 dark:text-zinc-300 shadow-sm hover:shadow-md hover:text-brand-600 dark:hover:text-brand-400 transition-all flex items-center gap-2">
+												<span>Expand Code</span>
+												<svg class="w-3 h-3" fill="none" stroke="currentColor"
+													viewBox="0 0 24 24">
+													<path stroke-linecap="round" stroke-linejoin="round"
+														stroke-width="2" d="M19 9l-7 7-7-7"></path>
+												</svg>
+											</button>
+										</div>
+										{{end}}
+									</div>
+								</div>
+
+								{{if .Example}}
+								<div class="mt-8">
+									<h3
+										class="flex items-center gap-2 text-sm font-semibold text-zinc-900 dark:text-zinc-100 uppercase tracking-wider mb-4">
+										<svg class="w-4 h-4 text-zinc-400" fill="none" stroke="currentColor"
+											viewBox="0 0 24 24">
+											<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+												d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4"></path>
+										</svg>
+										Example
+									</h3>
+									<div
+										class="rounded-xl border border-zinc-200 dark:border-zinc-800 bg-zinc-50 dark:bg-zinc-900/50 overflow-hidden">
+										<pre
+											class="not-prose !bg-transparent !m-0 !p-4 overflow-x-auto text-sm font-mono"><code class="language-go">{{.Example}}</code></pre>
+									</div>
+								</div>
+								{{end}}
+
+								{{if .Notes}}
+								<div class="mt-8">
+									<h3
+										class="flex items-center gap-2 text-sm font-semibold text-zinc-900 dark:text-zinc-100 uppercase tracking-wider mb-4">
+										<svg class="w-4 h-4 text-zinc-400" fill="none" stroke="currentColor"
+											viewBox="0 0 24 24">
+											<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+												d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z">
+											</path>
+										</svg>
+										Notes
+									</h3>
+									<div
+										class="prose prose-zinc dark:prose-invert max-w-none text-sm text-zinc-600 dark:text-zinc-400">
+										{{.Notes | html}}
+									</div>
+								</div>
+								{{end}}
+
+								<!-- Methods -->
+								{{if .Methods}}
+								<div class="space-y-6">
+									<h3
+										class="flex items-center gap-2 text-sm font-semibold text-zinc-900 dark:text-zinc-100 uppercase tracking-wider">
+										<svg class="w-4 h-4 text-zinc-400" fill="none" stroke="currentColor"
+											viewBox="0 0 24 24">
+											<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+												d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10">
+											</path>
+										</svg>
+										Methods
+									</h3>
+									<div class="grid gap-4">
+										{{range .Methods}}
+										<!-- Method Card -->
+										<div id="{{.Name}}"
+											class="group/method p-6 rounded-xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-950/50 hover:border-brand-500/30 dark:hover:border-brand-500/30 transition-all shadow-sm">
+											<div class="flex items-start justify-between mb-4">
+												<div>
+													<a href="#{{.Name}}"
+														class="text-sm font-mono font-bold text-zinc-900 dark:text-zinc-100 hover:text-brand-600 dark:hover:text-brand-400 transition-colors">{{.Name}}</a>
+													<div class="mt-1 flex gap-2">
+														<span
+															class="text-[10px] uppercase tracking-wider font-semibold text-zinc-500 bg-zinc-100 dark:bg-zinc-900 px-1.5 py-0.5 rounded border border-zinc-200 dark:border-zinc-800">Method</span>
+													</div>
+												</div>
+											</div>
+
+											{{if .DescriptionRaw}}
+											<p class="text-sm text-zinc-600 dark:text-zinc-400 mb-6 leading-relaxed">
+												{{.DescriptionRaw}}</p>
+											{{end}}
+
+											<!-- Parameters & Returns -->
+											{{if or .Parameters .Returns}}
+											<div
+												class="mb-6 grid grid-cols-1 md:grid-cols-2 gap-6 bg-zinc-50/50 dark:bg-zinc-900/30 p-4 rounded-xl border border-zinc-200/50 dark:border-zinc-800/50 overflow-x-auto min-w-0">
+												{{if .Parameters}}
+												<div class="min-w-0">
+													<h4
+														class="text-[10px] font-bold text-zinc-400 dark:text-zinc-500 uppercase mb-3 tracking-wider flex items-center gap-1.5">
+														<svg class="w-3 h-3" fill="none" stroke="currentColor"
+															viewBox="0 0 24 24">
+															<path stroke-linecap="round" stroke-linejoin="round"
+																stroke-width="2"
+																d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10">
+															</path>
+														</svg>
+														Parameters
+													</h4>
+													<div class="space-y-2">
+														{{range .Parameters}}
+														{{$p := splitParam .}}
+														<div class="flex items-baseline gap-2">
+															{{if $p.Name}}<span
+																class="text-zinc-700 dark:text-zinc-300 font-mono text-xs font-semibold">{{$p.Name}}</span>{{end}}
+															<span class="font-mono text-xs">{{$p.Type |
+																linkType}}</span>
+														</div>
+														{{end}}
+													</div>
+												</div>
+												{{end}}
+												{{if .Returns}}
+												<div class="min-w-0">
+													<h4
+														class="text-[10px] font-bold text-zinc-400 dark:text-zinc-500 uppercase mb-3 tracking-wider flex items-center gap-1.5">
+														<svg class="w-3 h-3" fill="none" stroke="currentColor"
+															viewBox="0 0 24 24">
+															<path stroke-linecap="round" stroke-linejoin="round"
+																stroke-width="2" d="M11 19l-7-7 7-7m8 14l-7-7 7-7">
+															</path>
+														</svg>
+														Returns
+													</h4>
+													<div class="space-y-2">
+														{{range .Returns}}
+														{{$p := splitParam .}}
+														<div class="flex items-baseline gap-2">
+															{{if $p.Name}}<span
+																class="text-zinc-700 dark:text-zinc-300 font-mono text-xs font-semibold">{{$p.Name}}</span>{{end}}
+															<span class="font-mono text-xs">{{$p.Type |
+																linkType}}</span>
+														</div>
+														{{end}}
+													</div>
+												</div>
+												{{end}}
+											</div>
+											{{end}}
+
+											<!-- Collapsible Method Code -->
+											<div
+												class="relative rounded-lg border border-zinc-200 dark:border-zinc-800 bg-zinc-50 dark:bg-zinc-900 overflow-hidden">
+												{{$mLineCount := lineCount .Body}}
+												{{if not .Body}}{{$mLineCount = 1}}{{end}}
+
+												<div id="wrapper-{{.Name}}"
+													class="{{if gt $mLineCount 10}}max-h-32{{else}}h-auto{{end}} overflow-hidden relative transition-[max-height] duration-500">
+													<pre
+														class="not-prose !bg-transparent !m-0 !p-3 text-xs font-mono overflow-x-auto"><code id="code-{{.Name}}" class="language-go !whitespace-pre">{{if .Signature}}{{.Signature}}
+{{if .Body}}{{.Body}}{{end}}{{else}}func {{.Name}}(...){{end}}</code></pre>
+												</div>
+
+												{{if .Example}}
+												<div class="mt-4 px-3 pb-3">
+													<div class="text-[10px] font-bold text-zinc-400 uppercase mb-2">
+														Example
+													</div>
+													<pre
+														class="not-prose !bg-zinc-100 dark:!bg-zinc-800/50 !m-0 !p-2 rounded border border-zinc-200 dark:border-zinc-700 overflow-x-auto text-[11px] font-mono"><code class="language-go">{{.Example}}</code></pre>
+												</div>
+												{{end}}
+
+												{{if gt $mLineCount 10}}
+												<div id="overlay-{{.Name}}"
+													class="absolute inset-x-0 bottom-0 h-16 bg-gradient-to-t from-zinc-50 dark:from-zinc-900 to-transparent flex items-end justify-center pb-2 cursor-pointer hover:bg-zinc-50/50 dark:hover:bg-zinc-900/50 transition-colors"
+													onclick="toggleCode('{{.Name}}')">
+													<svg class="w-4 h-4 text-zinc-400 animate-bounce" fill="none"
+														stroke="currentColor" viewBox="0 0 24 24">
+														<path stroke-linecap="round" stroke-linejoin="round"
+															stroke-width="2" d="M19 9l-7 7-7-7"></path>
+													</svg>
+												</div>
+												{{end}}
+											</div>
+										</div>
+										{{end}}
+									</div>
+								</div>
+								{{end}}
+
+								<!-- Fields -->
+								{{if .Fields}}
+								<div class="mt-8">
+									<h3
+										class="flex items-center gap-2 text-sm font-semibold text-zinc-900 dark:text-zinc-100 uppercase tracking-wider mb-4">
+										<svg class="w-4 h-4 text-zinc-400" fill="none" stroke="currentColor"
+											viewBox="0 0 24 24">
+											<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+												d="M4 6h16M4 10h16M4 14h16M4 18h16"></path>
+										</svg>
+										Fields
+									</h3>
+									<div
+										class="overflow-x-auto shadow ring-1 ring-black ring-opacity-5 rounded-lg border border-zinc-200 dark:border-zinc-800">
+										<table class="min-w-full divide-y divide-zinc-200 dark:divide-zinc-800">
+											<thead class="bg-zinc-50 dark:bg-zinc-900/50">
+												<tr>
+													<th scope="col"
+														class="py-3.5 pl-4 pr-3 text-left text-xs font-medium text-zinc-500 uppercase tracking-wider sm:pl-6">
+														Name</th>
+													<th scope="col"
+														class="px-3 py-3.5 text-left text-xs font-medium text-zinc-500 uppercase tracking-wider">
+														Type</th>
+													<th scope="col"
+														class="px-3 py-3.5 text-left text-xs font-medium text-zinc-500 uppercase tracking-wider">
+														Description</th>
+												</tr>
+											</thead>
+											<tbody
+												class="divide-y divide-zinc-200 dark:divide-zinc-800 bg-white dark:bg-zinc-950">
+												{{range .Fields}}
+												<tr
+													class="hover:bg-zinc-50 dark:hover:bg-zinc-900/50 transition-colors">
+													<td
+														class="whitespace-nowrap py-4 pl-4 pr-3 text-sm font-bold text-zinc-700 dark:text-zinc-200 sm:pl-6 font-mono">
+														{{.Name}}</td>
+													<td class="whitespace-nowrap px-3 py-4 text-sm font-mono">
+														{{.Type | linkType}}</td>
+													<td class="px-3 py-4 text-sm text-zinc-500">{{.Tag}}</td>
+												</tr>
+												{{end}}
+											</tbody>
+										</table>
+									</div>
+								</div>
+								{{end}}
+
+								<!-- Uses (References) -->
+								{{if .References}}
+								<div class="mt-8">
+									<h3
+										class="flex items-center gap-2 text-sm font-semibold text-zinc-900 dark:text-zinc-100 uppercase tracking-wider mb-4">
+										<svg class="w-4 h-4 text-zinc-400" fill="none" stroke="currentColor"
+											viewBox="0 0 24 24">
+											<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+												d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1">
+											</path>
+										</svg>
+										Uses
+									</h3>
+									<div class="flex flex-wrap gap-2">
+										{{range .References}}
+										<a {{if .PackagePath}}href="{{packageLink .Package}}#{{.Name}}"
+											{{else}}href="#{{.Name}}" {{end}}
+											class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-medium bg-zinc-100 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-400 border border-zinc-200 dark:border-zinc-700 hover:border-zinc-300 dark:hover:border-zinc-600 hover:text-zinc-900 dark:hover:text-zinc-200 transition-colors">
+											<span>{{.Name}}</span>
+											{{if .Package}}<span
+												class="opacity-50 text-[10px]">({{.Package}})</span>{{end}}
+										</a>
+										{{end}}
+									</div>
+								</div>
+								{{end}}
+							</div>
+						</section>
+						{{end}}
+					</div>
 				</div>
-				{{end}}
+		</main>
+	</div>
 
-				{{end}}
-
-				{{if eq .Type "type"}}
-				<h3 class="font-bold mt-4 mb-2">Type Definition:</h3>
-				<p>{{.Body}}</p>
-				{{end}}
-
+	<div id="search-modal" class="fixed inset-0 z-[100] hidden" aria-hidden="true" role="dialog">
+		<div class="fixed inset-0 bg-black/60 backdrop-blur-sm transition-opacity opacity-0" id="search-backdrop"></div>
+		<div class="fixed inset-0 z-10 overflow-y-auto p-0 sm:p-6 md:p-20 opacity-0 scale-95 transition-all"
+			id="search-panel">
+			<div
+				class="mx-auto max-w-2xl transform divide-y divide-zinc-200 dark:divide-zinc-800 overflow-hidden sm:rounded-xl bg-white dark:bg-zinc-900 shadow-2xl ring-1 ring-black/5 min-h-screen sm:min-h-0">
+				<div class="relative flex items-center px-4">
+					<svg class="pointer-events-none absolute top-3.5 left-4 h-5 w-5 text-zinc-400" viewBox="0 0 20 20"
+						fill="currentColor">
+						<path fill-rule="evenodd"
+							d="M8 4a4 4 0 100 8 4 4 0 000-8zM2 8a6 6 0 1110.89 3.476l4.817 4.817a1 1 0 01-1.414 1.414l-4.816-4.816A6 6 0 012 8z"
+							clip-rule="evenodd" />
+					</svg>
+					<input type="text" id="search-input"
+						class="h-14 w-full border-0 bg-transparent pl-11 pr-24 text-zinc-900 dark:text-zinc-100 placeholder-zinc-500 focus:ring-0 sm:text-base outline-none"
+						placeholder="Search everything..." />
+					<button onclick="toggleSearch()"
+						class="sm:hidden absolute right-4 px-3 py-1.5 text-xs font-bold text-white bg-brand-600 rounded-lg shadow-sm active:scale-95 transition-all">Close</button>
+					<button
+						class="hidden sm:block absolute right-4 px-1.5 py-0.5 text-[10px] font-bold text-zinc-500 border border-zinc-200 dark:border-zinc-700 rounded shadow-sm">ESC</button>
+				</div>
+				<ul id="search-results"
+					class="max-h-[calc(100vh-3.5rem)] sm:max-h-[60vh] scroll-py-2 overflow-y-auto p-2 hidden min-h-[4rem]">
+					<!-- Results -->
+				</ul>
+				<div id="search-empty" class="hidden py-14 px-6 text-center text-sm sm:px-14">
+					<svg class="mx-auto h-10 w-10 text-zinc-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+						<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+							d="M9.172 16.172a4 4 0 015.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z">
+						</path>
+					</svg>
+					<p class="mt-4 font-semibold text-zinc-900 dark:text-zinc-100">No results found</p>
+					<p class="mt-2 text-zinc-500">We couldn't find anything matching that term. Try something else.</p>
+				</div>
+				<!-- Footer tips -->
+				<div
+					class="bg-zinc-50 dark:bg-zinc-950/50 px-4 py-2.5 text-xs text-zinc-500 border-t border-zinc-200 dark:border-zinc-800 flex items-center justify-between">
+					<span><strong>Type</strong> to search</span>
+					<div class="flex gap-4">
+						<span class="flex items-center gap-1"><kbd
+								class="font-sans px-1 bg-white dark:bg-zinc-800 border border-zinc-300 dark:border-zinc-700 rounded">↓</kbd>
+							<kbd
+								class="font-sans px-1 bg-white dark:bg-zinc-800 border border-zinc-300 dark:border-zinc-700 rounded">↑</kbd>
+							to navigate</span>
+						<span class="flex items-center gap-1"><kbd
+								class="font-sans px-1.5 bg-white dark:bg-zinc-800 border border-zinc-300 dark:border-zinc-700 rounded">↵</kbd>
+							to select</span>
+					</div>
+				</div>
 			</div>
-			{{end}}
-
-			{{range .Imports}}
-			<div id="{{.URL}}" class="bg-white dark:bg-gray-800 shadow-lg rounded-lg p-6 mb-8">
-				<h2 class="text-2xl font-semibold mb-4">
-					{{.Path}} <span class="text-sm bg-gray-500 text-white rounded-full px-2 py-1">import</span>
-				</h2>
-
-				<h3 class="font-bold mt-4 mb-2">Import example:</h3>
-				<pre
-					class="bg-gray-800 dark:bg-gray-700 p-4 rounded-lg overflow-x-auto"><code class="hljs language-go">import "{{.Path}}"</code></pre>
-
-				{{if .Alias}}
-				<h3 class="font-bold mt-4 mb-2">Imported as:</h3>
-				<p>{{.Alias}}</p>
-				{{end}}
-
-				{{if .Comment}}
-				<h3 class="font-bold mt-4 mb-2">Comment:</h3>
-				<p>{{.Comment}}</p>
-				{{end}}
-
-				{{if .Doc}}
-				<h3 class="font-bold mt-4 mb-2">Documentation:</h3>
-				<p>{{.Doc}}</p>
-				{{end}}
-			</div>
-			{{end}}
-
 		</div>
 	</div>
-	<script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.8.0/highlight.min.js"></script>
-	<script>hljs.highlightAll();</script>
+
 	<script>
-		document.getElementById('function-search').addEventListener('input', function () {
-			let filter = this.value.toLowerCase();
-			let entities = document.querySelectorAll('#grouped-entities ul li');
+		// Initials and Theme Logic
+		const html = document.documentElement;
+		const sun = document.getElementById('sun-icon');
+		const moon = document.getElementById('moon-icon');
 
-			entities.forEach(function (entity) {
-				let text = entity.textContent.toLowerCase();
-				if (text.includes(filter) && filter !== '') {
-					entity.style.display = '';
+		function setHljsTheme(isDark) {
+			const hljsLight = document.getElementById('hljs-light');
+			const hljsDark = document.getElementById('hljs-dark');
+			if (hljsLight) hljsLight.disabled = isDark;
+			if (hljsDark) hljsDark.disabled = !isDark;
+		}
 
-					let title = entity.querySelector('a').getAttribute('title');
-
-					if (title && !entity.querySelector('.description-note')) {
-						let descriptionNote = document.createElement('small');
-						descriptionNote.classList.add('description-note', 'text-gray-500', 'block', 'mt-1', 'px-2');
-						descriptionNote.textContent = title;
-						entity.appendChild(descriptionNote);
-					}
-				} else {
-					entity.style.display = 'none';
-					let descriptionNote = entity.querySelector('.description-note');
-					if (descriptionNote) {
-						descriptionNote.remove();
-					}
-				}
-
-				if (filter === '') {
-					let descriptionNote = entity.querySelector('.description-note');
-					if (descriptionNote) {
-						descriptionNote.remove();
-					}
-					entity.style.display = '';
-				}
-			});
-		});
-
-		document.addEventListener('keydown', function (event) {
-			if (event.key.length === 1) {
-				document.getElementById('function-search').focus();
-			}
-		});
-
-		document.getElementById('menu-toggle').addEventListener('click', function () {
-			let sidebar = document.getElementById('sidebar');
-			if (sidebar.classList.contains('hidden')) {
-				sidebar.classList.remove('hidden');
+		function toggleTheme() {
+			if (html.classList.contains('dark')) {
+				html.classList.remove('dark');
+				localStorage.setItem('theme', 'light');
+				sun.classList.add('hidden');
+				moon.classList.remove('hidden');
+				setHljsTheme(false);
 			} else {
-				sidebar.classList.add('hidden');
-			}
-		});
-
-		function toggleGroup(groupId) {
-			const group = document.getElementById(groupId);
-			if (group.classList.contains('hidden')) {
-				group.classList.remove('hidden');
-			} else {
-				group.classList.add('hidden');
+				html.classList.add('dark');
+				localStorage.setItem('theme', 'dark');
+				moon.classList.add('hidden');
+				sun.classList.remove('hidden');
+				setHljsTheme(true);
 			}
 		}
+
+		// Check preference and set initial theme
+		if (localStorage.theme === 'dark' || (!('theme' in localStorage) && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
+			html.classList.add('dark');
+			moon.classList.add('hidden');
+			sun.classList.remove('hidden');
+		} else {
+			html.classList.remove('dark');
+			sun.classList.add('hidden');
+			moon.classList.remove('hidden');
+		}
+
+		// Mobile Navigation Logic
+		function toggleMobileMenu() {
+			const sidebar = document.getElementById('sidebar');
+			const backdrop = document.getElementById('sidebar-backdrop');
+			const isHidden = !sidebar.classList.contains('show');
+
+			if (isHidden) {
+				sidebar.classList.remove('hidden');
+				setTimeout(() => sidebar.classList.add('show'), 10);
+				backdrop.classList.remove('hidden');
+				document.body.style.overflow = 'hidden';
+			} else {
+				sidebar.classList.remove('show');
+				backdrop.classList.add('hidden');
+				document.body.style.overflow = '';
+				setTimeout(() => sidebar.classList.add('hidden'), 300);
+			}
+		}
+
+		function toggleMobileJump() {
+			const jump = document.getElementById('mobile-jump');
+			const isHidden = jump.classList.contains('hidden');
+
+			if (isHidden) {
+				jump.classList.remove('hidden');
+				jump.classList.add('animate-slide-top');
+				document.body.style.overflow = 'hidden';
+			} else {
+				jump.classList.add('hidden');
+				jump.classList.remove('animate-slide-top');
+				document.body.style.overflow = '';
+			}
+		}
+
+
+		// Code Toggle Logic
+		function toggleCode(id) {
+			const wrapper = document.getElementById('wrapper-' + id);
+			const overlay = document.getElementById('overlay-' + id);
+
+			if (wrapper.style.maxHeight === 'none') {
+				wrapper.style.maxHeight = ''; // reset to css default (64/32 classes)
+				overlay.style.opacity = '1';
+				overlay.style.pointerEvents = 'auto';
+				if (overlay.querySelector('span')) overlay.querySelector('span').innerText = 'Expand Code';
+			} else {
+				wrapper.style.maxHeight = 'none';
+				overlay.style.opacity = '0';
+				overlay.style.pointerEvents = 'none'; // click through
+			}
+		}
+
+
+		// Fullscreen Logic
+		function toggleFullscreen(id) {
+			const wrapper = document.getElementById(id);
+			// We need to target the PRE/CODE container mostly, or the wrapper.
+			// The wrapper has max-height styles.
+
+			const isFullscreen = wrapper.classList.contains('fixed');
+
+			if (!isFullscreen) {
+				// Enter fullscreen
+				wrapper.classList.add('fixed', 'inset-0', 'z-[100]', 'h-screen', 'w-screen', 'bg-white', 'dark:bg-zinc-950', 'p-8', 'overflow-auto', 'animate-fullscreen');
+				wrapper.classList.remove('max-h-64', 'relative');
+				// Hide overlay if present
+				const overlay = wrapper.nextElementSibling; // The overlay is next sibling in DOM structure
+				if (overlay && overlay.id && overlay.id.startsWith('overlay-')) {
+					overlay.style.display = 'none';
+				}
+
+				// Add close button or use ESC
+				// For this MVP, clicking maximize again (which is now floating?) no wait, the button is outside the wrapper!
+				// If I make wrapper fullscreen, the button is obscured!
+				// I should probably append a close button or make the whole card fullscreen?
+				// Making the wrapper fullscreen covers the button.
+				// Providing a close button inside the wrapper would be best.
+
+				if (!wrapper.querySelector('.close-fs-btn')) {
+					const closeBtn = document.createElement('button');
+					closeBtn.className = 'close-fs-btn fixed top-4 right-4 p-2 rounded-full bg-zinc-100 dark:bg-zinc-800 text-zinc-500 hover:text-zinc-900 dark:hover:text-zinc-100 transition-colors shadow-lg z-[101]';
+					closeBtn.innerHTML = '<svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>';
+					closeBtn.onclick = (e) => {
+						e.stopPropagation();
+						toggleFullscreen(id);
+					};
+					wrapper.appendChild(closeBtn);
+				}
+				wrapper.querySelector('.close-fs-btn').style.display = 'block';
+
+			} else {
+				// Exit fullscreen
+				wrapper.classList.remove('fixed', 'inset-0', 'z-[100]', 'h-screen', 'w-screen', 'bg-white', 'dark:bg-zinc-950', 'p-8', 'overflow-auto', 'animate-fullscreen');
+				wrapper.classList.add('max-h-64', 'relative');
+				// Show overlay if it was there and code is collapsed?
+				// Actually we reset to default state.
+				// We need to check if we should show overlay (if expanded or not).
+				// Simpler: Just restore style.
+				const overlay = wrapper.nextElementSibling;
+				if (overlay && overlay.id && overlay.id.startsWith('overlay-')) {
+					overlay.style.display = '';
+				}
+				const closeBtn = wrapper.querySelector('.close-fs-btn');
+				if (closeBtn) closeBtn.style.display = 'none';
+			}
+		}
+
+		document.addEventListener('keydown', (e) => {
+			if (e.key === 'Escape') {
+				const fullscreen = document.querySelector('.fixed.inset-0.z-\\[100\\]');
+				if (fullscreen) {
+					toggleFullscreen(fullscreen.id);
+				}
+			}
+		});
+
+		// Advanced Search Logic
+		const searchModal = document.getElementById('search-modal');
+		const searchBackdrop = document.getElementById('search-backdrop');
+		const searchPanel = document.getElementById('search-panel');
+		const searchInput = document.getElementById('search-input');
+		const searchResults = document.getElementById('search-results');
+		const searchEmpty = document.getElementById('search-empty');
+		let searchIndex = [];
+		let selectedIndex = -1;
+
+		async function loadSearchIndex() {
+			try {
+				const response = await fetch('search.json');
+				searchIndex = await response.json();
+			} catch (e) {
+				console.error("Failed to load search index", e);
+			}
+		}
+		loadSearchIndex();
+
+		function toggleSearch() {
+			if (searchModal.classList.contains('hidden')) {
+				// Open
+				searchModal.classList.remove('hidden');
+				// Animate in
+				setTimeout(() => {
+					searchBackdrop.classList.remove('opacity-0');
+					searchPanel.classList.remove('opacity-0', 'scale-95');
+				}, 10);
+				searchInput.focus();
+				selectedIndex = -1;
+			} else {
+				// Close
+				searchBackdrop.classList.add('opacity-0');
+				searchPanel.classList.add('opacity-0', 'scale-95');
+				setTimeout(() => {
+					searchModal.classList.add('hidden');
+					searchInput.value = '';
+					searchResults.classList.add('hidden');
+					searchResults.innerHTML = '';
+					searchEmpty.classList.add('hidden');
+				}, 200);
+			}
+		}
+
+		// Close on backdrop click
+		searchBackdrop.addEventListener('click', toggleSearch);
+		searchPanel.addEventListener('click', (e) => {
+			if (e.target === searchPanel) toggleSearch();
+		});
+
+		document.addEventListener('keydown', (e) => {
+			if ((e.metaKey || e.ctrlKey) && e.key === 'k') {
+				e.preventDefault();
+				toggleSearch();
+			}
+			if (e.key === 'Escape' && !searchModal.classList.contains('hidden')) {
+				toggleSearch();
+			}
+
+			// Navigation
+			if (!searchModal.classList.contains('hidden') && !searchResults.classList.contains('hidden')) {
+				const items = searchResults.querySelectorAll('li');
+				if (items.length === 0) return;
+
+				if (e.key === 'ArrowDown') {
+					e.preventDefault();
+					selectedIndex = (selectedIndex + 1) % items.length;
+					updateSelection(items);
+				} else if (e.key === 'ArrowUp') {
+					e.preventDefault();
+					selectedIndex = (selectedIndex - 1 + items.length) % items.length;
+					updateSelection(items);
+				} else if (e.key === 'Enter') {
+					e.preventDefault();
+					if (selectedIndex >= 0 && items[selectedIndex]) {
+						items[selectedIndex].querySelector('a').click();
+						toggleSearch(); // close
+					}
+				}
+			}
+		});
+
+		function updateSelection(items) {
+			items.forEach((item, index) => {
+				const link = item.querySelector('a');
+				if (index === selectedIndex) {
+					link.classList.add('bg-brand-50', 'dark:bg-brand-900/20', 'ring-1', 'ring-brand-500/50');
+					item.scrollIntoView({ block: 'nearest' });
+				} else {
+					link.classList.remove('bg-brand-50', 'dark:bg-brand-900/20', 'ring-1', 'ring-brand-500/50');
+				}
+			});
+		}
+
+		searchInput.addEventListener('input', (e) => {
+			const query = e.target.value.toLowerCase();
+			selectedIndex = -1;
+
+			if (!query) {
+				searchResults.classList.add('hidden');
+				searchEmpty.classList.add('hidden');
+				return;
+			}
+
+			const results = searchIndex.filter(item =>
+				item.name.toLowerCase().includes(query) ||
+				(item.description && item.description.toLowerCase().includes(query))
+			).slice(0, 50); // Limit results for perf
+
+			searchResults.innerHTML = '';
+
+			if (results.length > 0) {
+				searchResults.classList.remove('hidden');
+				searchEmpty.classList.add('hidden');
+				results.forEach((item, index) => {
+					const li = document.createElement('li');
+
+					// Icon logic
+					let iconColor = 'text-zinc-400';
+					let typeLabel = 'Unknown';
+					let bgIcon = 'bg-zinc-100 dark:bg-zinc-800';
+					if (item.type === 'function') {
+						iconColor = 'text-blue-500';
+						typeLabel = 'FUNC';
+						bgIcon = 'bg-blue-50 dark:bg-blue-900/30';
+					} else if (item.type === 'method') {
+						iconColor = 'text-purple-500';
+						typeLabel = 'METH';
+						bgIcon = 'bg-purple-50 dark:bg-purple-900/30';
+					} else if (item.type === 'struct') {
+						iconColor = 'text-emerald-500';
+						typeLabel = 'STRC';
+						bgIcon = 'bg-emerald-50 dark:bg-emerald-900/30';
+					} else if (item.type === 'interface') {
+						iconColor = 'text-amber-500';
+						typeLabel = 'INTF';
+						bgIcon = 'bg-amber-50 dark:bg-amber-900/30';
+					}
+
+					// Safe regex for highlight
+					const safeQuery = query.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+
+					li.innerHTML = `
+                        <a href="${item.link}" class="group flex select-none items-center rounded-lg p-2 hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors">
+                            <div class="flex h-10 w-10 flex-none items-center justify-center rounded-md ${bgIcon}">
+                                <span class="text-[10px] font-bold ${iconColor}">${typeLabel}</span>
+                            </div>
+                            <div class="ml-4 flex-auto overflow-hidden">
+                                <div class="flex items-center justify-between">
+                                     <p class="text-sm font-medium text-zinc-700 dark:text-zinc-200 group-hover:text-zinc-900 dark:group-hover:text-white truncate">
+                                        ${item.name.replace(new RegExp(safeQuery, 'gi'), '<span class="text-brand-600 dark:text-brand-400 underline decoration-2 decoration-brand-500/30">$&</span>')}
+                                     </p>
+                                     <span class="text-[10px] text-zinc-400 dark:text-zinc-600 font-mono hidden sm:inline-block">${item.type}</span>
+                                </div>
+                                <p class="text-xs text-zinc-500 truncate">${item.description ? item.description.substring(0, 60) : ''}</p>
+                            </div>
+                            <div class="ml-2 flex-none text-zinc-400 opacity-0 group-hover:opacity-100 transition-opacity">
+                                <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
+                                </svg>
+                            </div>
+                        </a>
+                    `;
+					searchResults.appendChild(li);
+				});
+				// Auto select first?
+				selectedIndex = 0;
+				updateSelection(searchResults.querySelectorAll('li'));
+
+			} else {
+				searchResults.classList.add('hidden');
+				searchEmpty.classList.remove('hidden');
+			}
+		});
 	</script>
+
+	<style>
+		/* Type link styles */
+		.type-link {
+			color: inherit !important;
+			text-decoration: none;
+			border-bottom: 1px dotted rgba(120, 113, 108, 0.4);
+			transition: all 0.2s;
+		}
+
+		.type-link:hover {
+			border-bottom-style: solid;
+			border-bottom-color: #0284c7;
+			background-color: rgba(2, 132, 199, 0.05);
+		}
+
+		.dark .type-link:hover {
+			border-bottom-color: #38bdf8;
+			background-color: rgba(56, 189, 248, 0.05);
+		}
+
+		.type-link.external::after {
+			content: '↗';
+			font-size: 0.6em;
+			vertical-align: super;
+			margin-left: 2px;
+			opacity: 0.5;
+		}
+	</style>
+
+	<!-- Load hljs styles at the end to ensure they override Tailwind -->
+	<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/github.min.css"
+		id="hljs-light">
+	<div id="pallas-metadata" style="display:none" data-type-index='{{.TypeIndex | json}}'
+		data-project-packages='{{.ProjectPackages | json}}' data-module-path='{{.ModulePath}}'></div>
+	<script>
+		// Data for cross-linking
+		const metadata = document.getElementById('pallas-metadata').dataset;
+		const typeInfo = JSON.parse(metadata.typeIndex || '{}');
+		const projectPackages = JSON.parse(metadata.projectPackages || '[]');
+		const modulePath = metadata.modulePath || "";
+
+		const typeIndex = {};
+		for (const name in typeInfo) {
+			typeIndex[name] = typeInfo[name].Link;
+		}
+
+		// Link types in code blocks after highlighting
+		function linkTypesInCode() {
+			document.querySelectorAll('pre code').forEach(codeBlock => {
+				let html = codeBlock.innerHTML;
+
+				// 1. Link fully qualified types: Package.Type
+				const qualifiedRegex = /\b([a-z0-9_]+)\.([A-Z][a-zA-Z0-9_]*)\b/g;
+				html = html.replace(qualifiedRegex, (match, pkg, type) => {
+					// Check if it's an internal package (exact match or suffix match)
+					const fullPath = (projectPackages || []).find(p => p === pkg || p.endsWith('/' + pkg));
+					if (fullPath) {
+						// Link to internal package page
+						const safePkg = fullPath.replace(/[^a-zA-Z0-9_-]/g, '_');
+						return `<a href="pkg_${safePkg}.html#${type}" class="type-link">${match}</a>`;
+					} else {
+						// Link to pkg.go.dev search as a fallback
+						return `<a href="https://pkg.go.dev/search?q=${pkg}.${type}" target="_blank" class="type-link external">${match}</a>`;
+					}
+				});
+
+				// 2. Link simple types from typeIndex
+				const sortedTypes = Object.keys(typeIndex).sort((a, b) => b.length - a.length);
+				for (const typeName of sortedTypes) {
+					if (typeName.includes('.')) continue; // Already handled by qualifiedRegex if it was pkg.Type
+					const link = typeIndex[typeName];
+					const regex = new RegExp(`(?<![\\w<>/="'])\\b(${typeName})\\b(?![\\w<>])`, 'g');
+					html = html.replace(regex, `<a href="${link}" class="type-link">$1</a>`);
+				}
+
+				codeBlock.innerHTML = html;
+			});
+		}
+
+		// Re-apply highlighting after Tailwind has finished injecting styles
+		setTimeout(() => {
+			hljs.highlightAll();
+			// Link types after highlighting
+			setTimeout(linkTypesInCode, 50);
+			// Also apply correct theme
+			const isDark = document.documentElement.classList.contains('dark');
+			const lightSheet = document.getElementById('hljs-light');
+			const darkSheet = document.getElementById('hljs-dark');
+			if (lightSheet) lightSheet.disabled = isDark;
+			if (darkSheet) darkSheet.disabled = !isDark;
+		}, 100);
+	</script>
+	<style>
+		/* Type link styles */
+		.type-link {
+			color: inherit !important;
+			text-decoration: none;
+			border-bottom: 1px dotted rgba(120, 113, 108, 0.4);
+			transition: all 0.2s;
+		}
+
+		.type-link:hover {
+			border-bottom-style: solid;
+			border-bottom-color: #0284c7;
+			background-color: rgba(2, 132, 199, 0.05);
+		}
+
+		.dark .type-link:hover {
+			border-bottom-color: #38bdf8;
+			background-color: rgba(56, 189, 248, 0.05);
+		}
+
+		.type-link.external::after {
+			content: '↗';
+			font-size: 0.6em;
+			vertical-align: super;
+			margin-left: 2px;
+			opacity: 0.5;
+		}
+	</style>
 </body>
 
 </html>

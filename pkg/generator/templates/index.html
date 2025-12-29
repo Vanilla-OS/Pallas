@@ -1,98 +1,370 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" class="">
 
 <head>
 	<meta charset="UTF-8">
 	<meta name="viewport" content="width=device-width, initial-scale=1.0">
-	<title>{{.Title}} Documentation Index</title>
-	<link href="https://cdn.jsdelivr.net/npm/tailwindcss@latest/dist/tailwind.min.css" rel="stylesheet">
-	<link rel="stylesheet"
-		href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.8.0/styles/atom-one-dark.min.css">
-	<link rel="stylesheet" href="static/style.css">
+	<title>{{.Title}} - Documentation</title>
+	<script src="https://cdn.tailwindcss.com?plugins=typography"></script>
+	<script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
+	<script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/languages/go.min.js"></script>
+	<script>
+		tailwind.config = {
+			darkMode: 'class',
+			theme: {
+				extend: {
+					typography: {
+						DEFAULT: {
+							css: {
+								'code::before': { content: 'none' },
+								'code::after': { content: 'none' },
+								pre: { color: false, backgroundColor: false },
+								code: { color: false, fontWeight: false, backgroundColor: false },
+								'pre code': { color: false, backgroundColor: false, padding: false }
+							}
+						}
+					},
+					colors: {
+						brand: {
+							50: '#f0f9ff',
+							100: '#e0f2fe',
+							500: '#0ea5e9',
+							600: '#0284c7',
+							900: '#0c4a6e',
+						}
+					}
+				}
+			}
+		}
+	</script>
+	<style>
+		/* Custom scrollbar */
+		::-webkit-scrollbar {
+			width: 6px;
+			height: 6px;
+		}
+
+		::-webkit-scrollbar-track {
+			background: transparent;
+		}
+
+		::-webkit-scrollbar-thumb {
+			background: #e5e7eb;
+			border-radius: 3px;
+		}
+
+		.dark ::-webkit-scrollbar-thumb {
+			background: #374151;
+		}
+
+		pre code {
+			background-color: transparent !important;
+			padding: 0 !important;
+		}
+
+		.prose pre {
+			background-color: #f9fafb !important;
+			border: 1px solid #e5e7eb;
+			border-radius: 0.5rem;
+		}
+
+		.dark .prose pre {
+			background-color: #18181b !important;
+			border-color: #27272a;
+		}
+
+		/* Mobile Drawer Styles */
+		#sidebar.show {
+			transform: translateX(0);
+		}
+	</style>
 </head>
 
-<body class="bg-gray-100 text-gray-800 dark:bg-gray-900 dark:text-gray-200 font-sans">
-	<div class="flex flex-col md:flex-row h-screen">
+<body class="bg-white dark:bg-zinc-950 text-zinc-900 dark:text-zinc-100 antialiased transition-colors duration-200">
+
+	<!-- Topbar -->
+	<header
+		class="fixed top-0 inset-x-0 h-16 bg-white/80 dark:bg-zinc-950/80 backdrop-blur-md border-b border-zinc-200 dark:border-zinc-800 z-[60]">
+		<div class="max-w-7xl mx-auto px-4 h-full flex items-center justify-between">
+			<div class="flex items-center gap-3">
+				<button onclick="toggleMobileMenu()"
+					class="lg:hidden p-2 -ml-2 text-zinc-500 hover:text-zinc-900 dark:hover:text-white transition-colors">
+					<svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+						<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+							d="M4 6h16M4 12h16M4 18h16"></path>
+					</svg>
+				</button>
+				<a href="index.html" class="flex items-center gap-3 group">
+					<div
+						class="w-8 h-8 rounded-lg bg-gradient-to-br from-zinc-900 to-zinc-700 dark:from-white dark:to-zinc-300 flex items-center justify-center shadow-sm group-hover:shadow-md transition-all">
+						<span
+							class="text-white dark:text-zinc-900 font-bold text-xs tracking-wider">{{.Initials}}</span>
+					</div>
+					<span
+						class="font-semibold text-sm tracking-tight group-hover:text-zinc-600 dark:group-hover:text-zinc-300 transition-colors inline-block">{{.Title}}</span>
+				</a>
+			</div>
+
+			<div class="flex items-center gap-2 md:gap-4">
+				<button onclick="toggleSearch()"
+					class="flex items-center gap-2 px-3 py-1.5 rounded-md bg-zinc-50 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 text-xs text-zinc-500 hover:border-zinc-300 dark:hover:border-zinc-700 transition-colors w-10 md:w-64 justify-center md:justify-start">
+					<svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+						<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+							d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
+					</svg>
+					<span class="hidden md:inline">Search...</span>
+					<span
+						class="ml-auto text-[10px] border border-zinc-200 dark:border-zinc-800 rounded px-1 hidden md:inline">⌘K</span>
+				</button>
+
+				<nav class="hidden md:flex items-center gap-6 text-sm font-medium text-zinc-600 dark:text-zinc-400">
+					<a href="index.html" class="text-zinc-900 dark:text-zinc-100">Overview</a>
+					{{if .Packages}}
+					<a href="{{(index .Packages 0).Link}}"
+						class="hover:text-zinc-900 dark:hover:text-zinc-100 transition-colors">API Reference</a>
+					{{end}}
+				</nav>
+
+				<div class="hidden sm:block w-px h-4 bg-zinc-200 dark:bg-zinc-800"></div>
+
+				<button onclick="toggleTheme()"
+					class="p-2 rounded-md hover:bg-zinc-100 dark:hover:bg-zinc-900 text-zinc-500 transition-colors">
+					<svg id="moon-icon" class="w-4 h-4 hidden" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+						<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+							d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z">
+						</path>
+					</svg>
+					<svg id="sun-icon" class="w-4 h-4 hidden" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+						<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+							d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z">
+						</path>
+					</svg>
+				</button>
+			</div>
+		</div>
+	</header>
+
+	<div class="max-w-7xl mx-auto pt-16 lg:flex">
+		<!-- Sidebar Backdrop -->
+		<div id="sidebar-backdrop" class="fixed inset-0 bg-black/50 backdrop-blur-sm z-40 hidden lg:hidden"
+			onclick="toggleMobileMenu()"></div>
 
 		<!-- Sidebar -->
-		<div id="sidebar" class="w-full md:w-64 bg-gray-900 text-white p-4 flex flex-col h-screen sticky top-0">
-			<h1 class="text-2xl font-bold mb-6 text-center">{{.Title}}</h1>
+		<aside id="sidebar"
+			class="w-72 fixed inset-y-0 left-0 pt-20 pb-8 px-6 border-r border-zinc-200 dark:border-zinc-800 overflow-y-auto hidden lg:block bg-white dark:bg-zinc-950 z-40 transform transition-transform duration-300 -translate-x-full lg:translate-x-0">
+			<nav class="space-y-8">
+				<div>
+					<h3 class="font-bold text-[10px] uppercase tracking-[0.2em] text-zinc-400 mb-4 px-2">Documentation
+					</h3>
+					<ul class="space-y-1">
+						<li>
+							<a href="index.html"
+								class="flex items-center gap-2 px-3 py-2 text-sm font-medium rounded-md bg-brand-50 dark:bg-brand-900/20 text-brand-700 dark:text-brand-300">
+								<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+									<path
+										d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6">
+									</path>
+								</svg>
+								Overview
+							</a>
+						</li>
+						{{if .Packages}}
+						<li>
+							<a href="{{(index .Packages 0).Link}}"
+								class="flex items-center gap-2 px-3 py-2 text-sm font-medium rounded-md text-zinc-600 dark:text-zinc-400 hover:bg-zinc-50 dark:hover:bg-zinc-900 transition-colors">
+								<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+									<path
+										d="M8 9l3 3-3 3m5 0h3M5 20h14a2 2 0 002-2V6a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z">
+									</path>
+								</svg>
+								API Reference
+							</a>
+						</li>
+						{{end}}
+					</ul>
+				</div>
 
-			<!-- Search bar -->
-			<input type="text" id="package-search" placeholder="Search packages..."
-				class="mb-4 px-2 py-1 rounded text-white bg-white bg-opacity-20 focus:outline-none focus:ring-2 focus:ring-blue-600">
-
-			<!-- Grouped packages -->
-			<div id="grouped-packages" class="flex-grow overflow-y-auto">
-				{{range $prefix, $groups := .GroupedPackages}}
-				<div class="mb-4 border-b border-gray-700 pb-4">
-					<button
-						class="w-full text-left text-lg font-semibold py-2 px-3 bg-gray-800 hover:bg-gray-700 transition rounded-lg focus:outline-none flex items-center justify-between sticky top-0 z-10"
-						onclick="toggleGroup('group-{{$prefix}}')">
-						<span>{{ $prefix }}</span>
-						<span class="text-xs">▼</span>
-					</button>
-					<ul id="group-{{$prefix}}" class="mt-2">
-						{{range $groups}}
-						<li class="mb-2">
+				{{if .Packages}}
+				<div>
+					<h3 class="font-bold text-[10px] uppercase tracking-[0.2em] text-zinc-400 mb-4 px-2">Packages</h3>
+					<ul class="space-y-0.5">
+						{{range .Packages}}
+						<li>
 							<a href="{{.Link}}"
-								class="block py-1 px-2 rounded hover:bg-gray-700 transition">{{.Name}}</a>
+								class="flex items-center gap-2 px-3 py-1.5 text-sm rounded-md text-zinc-600 dark:text-zinc-400 hover:bg-zinc-50 dark:hover:bg-zinc-900 hover:text-zinc-900 dark:hover:text-white transition-all truncate">
+								<svg class="w-3.5 h-3.5 text-zinc-400" fill="none" stroke="currentColor"
+									viewBox="0 0 24 24">
+									<path d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z">
+									</path>
+								</svg>
+								{{.Name}}
+							</a>
 						</li>
 						{{end}}
 					</ul>
 				</div>
 				{{end}}
-			</div>
+			</nav>
+		</aside>
 
-			<div class="mt-6 text-center text-gray-400 text-sm">
-				<p>Generated by <a href="https://github.com/vanilla-os/pallas" class="hover:underline">Pallas</a></p>
-			</div>
-		</div>
+		<!-- Content -->
+		<main class="flex-1 lg:ml-72 px-4 sm:px-6 lg:px-12 py-12">
+			<div class="max-w-4xl">
+				<article
+					class="prose prose-zinc dark:prose-invert max-w-none prose-h1:text-4xl prose-h1:font-bold prose-h1:tracking-tight">
+					{{.Readme}}
+				</article>
 
-		<!-- Main content -->
-		<div class="flex-grow p-6 md:p-8 h-screen overflow-y-auto">
-			<div class="bg-white dark:bg-gray-800 shadow-lg rounded-lg p-6 mb-8">
-				<div class="border-b border-gray-200 dark:border-gray-700 pb-4 mb-4">
-					<b>README.md</b>
+				<div class="mt-20 pt-10 border-t border-zinc-200 dark:border-zinc-800">
+					<h2 class="text-2xl font-bold text-zinc-900 dark:text-zinc-50 mb-8 flex items-center gap-3">
+						<div class="w-8 h-8 rounded-lg bg-brand-500/10 flex items-center justify-center">
+							<svg class="w-5 h-5 text-brand-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+								<path
+									d="M19.428 15.428a2 2 0 00-1.022-.547l-2.387-.477a6 6 0 00-3.86.517l-.318.158a6 6 0 01-3.86.517L6.05 15.21a2 2 0 00-1.806.547M8 4h8l-1 1v5.172a2 2 0 00.586 1.414l5 5c1.26 1.26.367 3.414-1.415 3.414H4.828c-1.782 0-2.674-2.154-1.414-3.414l5-5A2 2 0 009 10.172V5L8 4z">
+								</path>
+							</svg>
+						</div>
+						Explore the SDK
+					</h2>
+					<div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+						{{range .Packages}}
+						<a href="{{.Link}}"
+							class="group p-6 rounded-2xl border border-zinc-200 dark:border-zinc-800 hover:border-brand-500/50 dark:hover:border-brand-500/50 bg-zinc-50 dark:bg-zinc-900/50 transition-all hover:shadow-lg hover:shadow-brand-500/5">
+							<div class="flex items-center gap-3 mb-3">
+								<div
+									class="w-8 h-8 rounded-lg bg-white dark:bg-zinc-800 flex items-center justify-center border border-zinc-200 dark:border-zinc-700 shadow-sm group-hover:bg-brand-50 group-hover:border-brand-200 dark:group-hover:bg-brand-900/30 transition-colors">
+									<svg class="w-4 h-4 text-zinc-400 group-hover:text-brand-500" fill="none"
+										stroke="currentColor" viewBox="0 0 24 24">
+										<path
+											d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z">
+										</path>
+									</svg>
+								</div>
+								<h3
+									class="font-bold text-zinc-900 dark:text-zinc-50 group-hover:text-brand-600 dark:group-hover:text-brand-400 font-mono text-sm truncate">
+									{{.Name}}</h3>
+							</div>
+							<p class="text-xs text-zinc-500 leading-relaxed truncate">Full API reference for the
+								{{.Name}} package.</p>
+						</a>
+						{{end}}
+					</div>
 				</div>
-				<p class="text-gray-700 dark:text-gray-300">
-					{{.ReadmeContent}}
-				</p>
+			</div>
+		</main>
+	</div>
+
+	<!-- Search Modal -->
+	<div id="search-modal" class="fixed inset-0 z-[100] hidden" aria-hidden="true" role="dialog">
+		<div class="fixed inset-0 bg-black/60 backdrop-blur-sm transition-opacity" onclick="toggleSearch()"></div>
+		<div class="fixed inset-0 z-10 overflow-y-auto p-0 sm:p-6 md:p-20">
+			<div
+				class="mx-auto max-w-xl transform divide-y divide-zinc-200 dark:divide-zinc-800 overflow-hidden sm:rounded-xl bg-white dark:bg-zinc-900 shadow-2xl min-h-screen sm:min-h-0">
+				<div class="relative flex items-center px-4">
+					<svg class="pointer-events-none absolute top-3.5 left-4 h-5 w-5 text-zinc-400" viewBox="0 0 20 20"
+						fill="currentColor">
+						<path fill-rule="evenodd"
+							d="M8 4a4 4 0 100 8 4 4 0 000-8zM2 8a6 6 0 1110.89 3.476l4.817 4.817a1 1 0 01-1.414 1.414l-4.816-4.816A6 6 0 012 8z"
+							clip-rule="evenodd" />
+					</svg>
+					<input type="text" id="search-input"
+						class="h-14 w-full border-0 bg-transparent pl-11 pr-24 text-zinc-900 dark:text-zinc-100 placeholder-zinc-500 focus:ring-0 sm:text-sm outline-none"
+						placeholder="Search..." />
+					<button onclick="toggleSearch()"
+						class="sm:hidden absolute right-4 text-xs font-bold text-white bg-brand-600 px-3 py-1.5 rounded-lg active:scale-95 transition-all">Close</button>
+				</div>
+				<ul id="search-results" class="max-h-[calc(100vh-3.5rem)] sm:max-h-80 overflow-y-auto p-2 hidden"></ul>
+				<div id="search-empty" class="hidden py-14 px-6 text-center text-sm">
+					<p class="font-semibold text-zinc-900 dark:text-zinc-100">No results found</p>
+				</div>
 			</div>
 		</div>
 	</div>
 
-	<script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.8.0/highlight.min.js"></script>
-	<script>hljs.highlightAll();</script>
 	<script>
-		document.getElementById('package-search').addEventListener('input', function () {
-			let filter = this.value.toLowerCase();
-			let packages = document.querySelectorAll('#grouped-packages ul li');
+		const html = document.documentElement;
+		const sun = document.getElementById('sun-icon');
+		const moon = document.getElementById('moon-icon');
 
-			packages.forEach(function (pkg) {
-				let text = pkg.textContent.toLowerCase();
-				if (text.includes(filter)) {
-					pkg.style.display = '';
-				} else {
-					pkg.style.display = 'none';
-				}
-			});
-		});
-
-		document.addEventListener('keydown', function (event) {
-			if (event.key.length === 1) {
-				document.getElementById('package-search').focus();
-			}
-		});
-
-		function toggleGroup(groupId) {
-			const group = document.getElementById(groupId);
-			if (group.classList.contains('hidden')) {
-				group.classList.remove('hidden');
-			} else {
-				group.classList.add('hidden');
-			}
+		function toggleTheme() {
+			const isDark = html.classList.toggle('dark');
+			localStorage.setItem('theme', isDark ? 'dark' : 'light');
+			sun.classList.toggle('hidden', !isDark);
+			moon.classList.toggle('hidden', isDark);
+			const hlLight = document.getElementById('hljs-light');
+			const hlDark = document.getElementById('hljs-dark');
+			if (hlLight) hlLight.disabled = isDark;
+			if (hlDark) hlDark.disabled = !isDark;
 		}
+
+		if (localStorage.theme === 'dark' || (!('theme' in localStorage) && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
+			html.classList.add('dark');
+			sun.classList.remove('hidden');
+		} else {
+			moon.classList.remove('hidden');
+		}
+
+		function toggleMobileMenu() {
+			const sidebar = document.getElementById('sidebar');
+			const backdrop = document.getElementById('sidebar-backdrop');
+			sidebar.classList.toggle('hidden');
+			setTimeout(() => sidebar.classList.toggle('show'), 10);
+			backdrop.classList.toggle('hidden');
+			document.body.style.overflow = sidebar.classList.contains('show') ? 'hidden' : '';
+		}
+
+		hljs.highlightAll();
+
+		const searchModal = document.getElementById('search-modal');
+		const searchInput = document.getElementById('search-input');
+		const searchResults = document.getElementById('search-results');
+		const searchEmpty = document.getElementById('search-empty');
+		let searchIndex = [];
+
+		async function loadSearchIndex() {
+			const res = await fetch('search.json');
+			searchIndex = await res.json();
+		}
+		loadSearchIndex();
+
+		function toggleSearch() {
+			searchModal.classList.toggle('hidden');
+			if (!searchModal.classList.contains('hidden')) searchInput.focus();
+		}
+
+		// Close on backdrop click
+		searchModal.addEventListener('click', (e) => {
+			if (e.target === searchModal || e.target.classList.contains('backdrop-blur-sm')) {
+				toggleSearch();
+			}
+		});
+
+		document.addEventListener('keydown', e => {
+			if ((e.metaKey || e.ctrlKey) && e.key === 'k') { e.preventDefault(); toggleSearch(); }
+			if (e.key === 'Escape') toggleSearch();
+		});
+
+		searchInput.addEventListener('input', e => {
+			const q = e.target.value.toLowerCase();
+			if (!q) { searchResults.classList.add('hidden'); searchEmpty.classList.add('hidden'); return; }
+			const res = searchIndex.filter(i => i.name.toLowerCase().includes(q)).slice(0, 10);
+			searchResults.innerHTML = '';
+			if (res.length > 0) {
+				searchResults.classList.remove('hidden');
+				searchEmpty.classList.add('hidden');
+				res.forEach(i => {
+					const li = document.createElement('li');
+					li.innerHTML = `<a href="${i.link}" class="flex items-center gap-4 p-3 rounded-xl hover:bg-zinc-50 dark:hover:bg-zinc-800 transition-colors">
+						<div class="w-10 h-10 rounded-lg bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-700 flex items-center justify-center text-xs font-bold">${i.type[0].toUpperCase()}</div>
+						<div><p class="text-sm font-bold">${i.name}</p><p class="text-xs text-zinc-500">${i.package}</p></div>
+					</a>`;
+					searchResults.appendChild(li);
+				});
+			} else {
+				searchResults.classList.add('hidden');
+				searchEmpty.classList.remove('hidden');
+			}
+		});
 	</script>
 </body>
 

@@ -4,14 +4,12 @@ import (
 	"go/ast"
 	"go/format"
 	"go/token"
-	"html"
-	"os"
 	"strings"
+
+	"github.com/russross/blackfriday/v2"
 )
 
-// Extract methods from an interface declaration
-//
-// Returns: EntityInfo representing the methods of the interface
+// extractMethods collects method information from an interface.
 func extractMethods(interfaceType *ast.InterfaceType) []EntityInfo {
 	var methods []EntityInfo
 	for _, field := range interfaceType.Methods.List {
@@ -27,9 +25,7 @@ func extractMethods(interfaceType *ast.InterfaceType) []EntityInfo {
 	return methods
 }
 
-// Extract fields from a struct
-//
-// Returns: FieldInfo representing the fields of the struct
+// extractFields collects field information from a struct.
 func extractFields(structType *ast.StructType) []FieldInfo {
 	var fields []FieldInfo
 	for _, field := range structType.Fields.List {
@@ -46,9 +42,7 @@ func extractFields(structType *ast.StructType) []FieldInfo {
 	return fields
 }
 
-// Extract a structs tags
-//
-// Returns: Tag value as a string or an empty string if no tag is present
+// extractTag returns the backtick-wrapped tag string of a struct field.
 func extractTag(field *ast.Field) string {
 	if field.Tag != nil {
 		return strings.Trim(field.Tag.Value, "`")
@@ -56,7 +50,7 @@ func extractTag(field *ast.Field) string {
 	return ""
 }
 
-// Holds different parts of a function's documentation comment
+// DescriptionData holds both formatted (HTML) and raw documentation components.
 type DescriptionData struct {
 	Description     string
 	Example         string
@@ -64,16 +58,11 @@ type DescriptionData struct {
 	DeprecationNote string
 	Returns         string
 
-	// Raw fields
 	DescriptionRaw     string
 	DeprecationNoteRaw string
 }
 
-// Extract and format description data and example code from a
-// documentation comment string
-//
-// Returns: A DescriptionData struct containing formatted and raw description,
-// example, notes, deprecation note, and returns information
+// extractDescriptionData parses a Go documentation comment and extracts metadata sections.
 func extractDescriptionData(doc string) DescriptionData {
 	lines := strings.Split(doc, "\n")
 
@@ -95,29 +84,29 @@ func extractDescriptionData(doc string) DescriptionData {
 	isReturns := false
 
 	for _, line := range lines {
-		line = strings.TrimSpace(line)
-		if strings.HasPrefix(line, "Example:") {
+		trimmedLine := strings.TrimSpace(line)
+		if strings.HasPrefix(trimmedLine, "Example:") {
 			isExample = true
 			isNotes = false
 			isDeprecationNote = false
 			isReturns = false
 			continue
 		}
-		if strings.HasPrefix(line, "Notes:") {
+		if strings.HasPrefix(trimmedLine, "Notes:") {
 			isNotes = true
 			isExample = false
 			isDeprecationNote = false
 			isReturns = false
 			continue
 		}
-		if strings.HasPrefix(line, "Deprecated:") {
+		if strings.HasPrefix(trimmedLine, "Deprecated:") {
 			isDeprecationNote = true
 			isExample = false
 			isNotes = false
 			isReturns = false
 			continue
 		}
-		if strings.HasPrefix(line, "Returns:") {
+		if strings.HasPrefix(trimmedLine, "Returns:") {
 			isReturns = true
 			isExample = false
 			isNotes = false
@@ -128,55 +117,30 @@ func extractDescriptionData(doc string) DescriptionData {
 		if isExample {
 			exampleLines = append(exampleLines, line)
 		} else if isNotes {
-			notesLines = append(notesLines, line)
+			notesLines = append(notesLines, trimmedLine)
 		} else if isDeprecationNote {
-			deprecationNoteLines = append(deprecationNoteLines, line)
+			deprecationNoteLines = append(deprecationNoteLines, trimmedLine)
 		} else if isReturns {
-			returnsLines = append(returnsLines, line)
+			returnsLines = append(returnsLines, trimmedLine)
 		} else {
-			descLines = append(descLines, line)
+			descLines = append(descLines, trimmedLine)
 		}
 	}
 
-	// Description
 	descriptionRaw := strings.Join(descLines, "\n")
-	description = strings.Join(descLines, "</p>\n<p>")
-	description = "<p>" + description + "</p>"
-	description = strings.ReplaceAll(description, "\t", " ")
-	if description == "<p></p>" {
-		description = ""
-	}
+	description = markdownToHTML(descriptionRaw)
 
-	// Example
 	example = strings.Join(exampleLines, "\n")
-	example = strings.TrimLeft(example, " \t")
-	example = strings.TrimLeft(example, "\n")
 	example = formatExample(example)
 
-	// Notes
-	notes = strings.Join(notesLines, "</p>\n<p>")
-	notes = "<p>" + notes + "</p>"
-	notes = strings.ReplaceAll(notes, "\t", " ")
-	if notes == "<p></p>" {
-		notes = ""
-	}
+	notesRaw := strings.Join(notesLines, "\n")
+	notes = markdownToHTML(notesRaw)
 
-	// Deprecation Note
 	deprecationNoteRaw := strings.Join(deprecationNoteLines, "\n")
-	deprecationNote = strings.Join(deprecationNoteLines, "</p>\n<p>")
-	deprecationNote = "<p>" + deprecationNote + "</p>"
-	deprecationNote = strings.ReplaceAll(deprecationNote, "\t", " ")
-	if deprecationNote == "<p></p>" {
-		deprecationNote = ""
-	}
+	deprecationNote = markdownToHTML(deprecationNoteRaw)
 
-	// Returns
-	returns = strings.Join(returnsLines, "</p>\n<p>")
-	returns = "<p>" + returns + "</p>"
-	returns = strings.ReplaceAll(returns, "\t", " ")
-	if returns == "<p></p>" {
-		returns = ""
-	}
+	returnsRaw := strings.Join(returnsLines, "\n")
+	returns = markdownToHTML(returnsRaw)
 
 	return DescriptionData{
 		Description:     description,
@@ -185,30 +149,65 @@ func extractDescriptionData(doc string) DescriptionData {
 		DeprecationNote: deprecationNote,
 		Returns:         returns,
 
-		// Raw fields
 		DescriptionRaw:     descriptionRaw,
 		DeprecationNoteRaw: deprecationNoteRaw,
 	}
 }
 
-// Format the example code snippet to be properly indented and aligned
-// using the go/format package.
-//
-// Returns: Formatted example code as a string; if formatting fails, returns
-// the original example string
-func formatExample(example string) string {
-	src := []byte(example)
-	formattedSrc, err := format.Source(src)
-	if err != nil {
-		return example
-	}
-
-	return string(formattedSrc)
+// markdownToHTML converts markdown text to HTML using the blackfriday engine.
+func markdownToHTML(md string) string {
+	renderer := blackfriday.NewHTMLRenderer(blackfriday.HTMLRendererParameters{
+		Flags: blackfriday.CommonHTMLFlags,
+	})
+	extensions := blackfriday.CommonExtensions | blackfriday.AutoHeadingIDs | blackfriday.HardLineBreak | blackfriday.Autolink
+	output := blackfriday.Run([]byte(md), blackfriday.WithRenderer(renderer), blackfriday.WithExtensions(extensions))
+	return string(output)
 }
 
-// Extract the parameters from a function or method declaration
-//
-// Returns: Strings representing parameter names and their types
+// formatExample cleans up indentation in code examples while preserving relative structure.
+func formatExample(example string) string {
+	lines := strings.Split(example, "\n")
+
+	for len(lines) > 0 && strings.TrimSpace(lines[0]) == "" {
+		lines = lines[1:]
+	}
+
+	for len(lines) > 0 && strings.TrimSpace(lines[len(lines)-1]) == "" {
+		lines = lines[:len(lines)-1]
+	}
+
+	if len(lines) == 0 {
+		return ""
+	}
+
+	minIndent := -1
+	for _, line := range lines {
+		if strings.TrimSpace(line) == "" {
+			continue
+		}
+		indent := len(line) - len(strings.TrimLeft(line, " \t"))
+		if minIndent == -1 || indent < minIndent {
+			minIndent = indent
+		}
+	}
+
+	if minIndent <= 0 {
+		return strings.Join(lines, "\n")
+	}
+
+	dedentedLines := make([]string, len(lines))
+	for i, line := range lines {
+		if len(line) >= minIndent {
+			dedentedLines[i] = line[minIndent:]
+		} else {
+			dedentedLines[i] = strings.TrimLeft(line, " \t")
+		}
+	}
+
+	return strings.Join(dedentedLines, "\n")
+}
+
+// extractParameters returns a slice of formatted parameter strings.
 func extractParameters(fieldList *ast.FieldList) []string {
 	var params []string
 	if fieldList != nil {
@@ -225,30 +224,7 @@ func extractParameters(fieldList *ast.FieldList) []string {
 	return params
 }
 
-// Extracts the body of a function declaration
-//
-// Returns: Strings where each string represents a parameter name
-// and type, or just the type if no name is provided
-func extractBody(fs *token.FileSet, fn *ast.FuncDecl) string {
-	if fn.Body == nil {
-		return ""
-	}
-
-	start := fs.Position(fn.Body.Pos()).Offset
-	end := fs.Position(fn.Body.End()).Offset
-	fileContent, _ := os.ReadFile(fs.File(fn.Body.Pos()).Name())
-	body := string(fileContent[start:end])
-
-	// before returning we have to escape possible html snippets in it since
-	// those snippets are rendered by highlighting.js which has an issue with
-	// unescaped html snippets (yeah even if inside a Go string, what a pleasure)
-	return html.EscapeString(body)
-}
-
-// Format an expression into a string representation
-// using the go/format package.
-//
-// Returns: Formatted string of the expression
+// formatExpr converts an AST expression إلى its Go source representation.
 func formatExpr(expr ast.Expr) string {
 	var out strings.Builder
 	if err := format.Node(&out, token.NewFileSet(), expr); err != nil {
@@ -257,15 +233,37 @@ func formatExpr(expr ast.Expr) string {
 	return out.String()
 }
 
-// Identify references to other entities within the given entity.
-//
-// Returns: ReferenceInfo with details of each referenced entity
+// extractBody retrieves the source code block of a function or method.
+func extractBody(node ast.Node, fset *token.FileSet, fileContent []byte) string {
+	if node == nil {
+		return ""
+	}
+
+	// Try to slice directly from the original file content for accuracy
+	if len(fileContent) > 0 {
+		start := fset.Position(node.Pos()).Offset
+		end := fset.Position(node.End()).Offset
+		if start >= 0 && end <= len(fileContent) && start < end {
+			return string(fileContent[start:end])
+		}
+	}
+
+	var buf strings.Builder
+	if err := format.Node(&buf, fset, node); err != nil {
+		return ""
+	}
+	return buf.String()
+}
+
+// findReferences scans an entity for references to other known types within the same package.
 func findReferences(entity EntityInfo, entityIndex map[string]EntityInfo) []ReferenceInfo {
 	var references []ReferenceInfo
 
-	// Check for parameters
 	for _, param := range entity.Parameters {
 		parts := strings.Fields(param)
+		if len(parts) == 0 {
+			continue
+		}
 		paramType := parts[len(parts)-1]
 		if refEntity, found := entityIndex[entity.Package+"."+paramType]; found {
 			references = append(references, ReferenceInfo{
@@ -277,9 +275,11 @@ func findReferences(entity EntityInfo, entityIndex map[string]EntityInfo) []Refe
 		}
 	}
 
-	// Check for returns
 	for _, ret := range entity.Returns {
 		parts := strings.Fields(ret)
+		if len(parts) == 0 {
+			continue
+		}
 		retType := parts[len(parts)-1]
 		if refEntity, found := entityIndex[entity.Package+"."+retType]; found {
 			references = append(references, ReferenceInfo{
@@ -291,7 +291,6 @@ func findReferences(entity EntityInfo, entityIndex map[string]EntityInfo) []Refe
 		}
 	}
 
-	// Check for fields
 	for _, field := range entity.Fields {
 		if refEntity, found := entityIndex[entity.Package+"."+field.Type]; found {
 			references = append(references, ReferenceInfo{

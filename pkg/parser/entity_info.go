@@ -1,7 +1,6 @@
 package parser
 
-// Information about each entity in the package
-// (functions, types, interfaces)
+// EntityInfo represents a Go entity such as a function, struct, interface, or type alias.
 type EntityInfo struct {
 	Name            string
 	Description     string
@@ -11,7 +10,7 @@ type EntityInfo struct {
 	Parameters      []string
 	Returns         []string
 	Body            string
-	Type            string
+	Type            string // "function", "struct", "interface", "type"
 	Fields          []FieldInfo
 	Methods         []EntityInfo
 	Implements      []ImplementationInfo
@@ -20,12 +19,16 @@ type EntityInfo struct {
 	PackagePath     string
 	References      []ReferenceInfo
 
-	// Raw fields
 	DescriptionRaw     string
 	DeprecationNoteRaw string
+
+	Signature string
+	File      string
+	LineStart int
+	LineEnd   int
 }
 
-// Information about references used by an entity
+// ReferenceInfo contains details about a type referenced by an entity.
 type ReferenceInfo struct {
 	Name        string
 	Package     string
@@ -33,24 +36,26 @@ type ReferenceInfo struct {
 	PackagePath string
 }
 
-// Information about each field in a struct
+// FieldInfo represents a single field within a struct.
 type FieldInfo struct {
 	Name string
 	Type string
 	Tag  string
 }
 
-// Information about an implemented interface
+// ImplementationInfo identifies an interface implemented by a struct.
 type ImplementationInfo struct {
 	InterfaceName string
 	Package       string
 }
 
-// Information about an imported package
+// ImportInfo captures details about a package import.
 type ImportInfo struct {
 	URL     string
 	Path    string
 	Alias   string
 	Doc     string
 	Comment string
+	Package string
+	File    string
 }

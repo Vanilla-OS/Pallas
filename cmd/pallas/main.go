@@ -1,204 +1,314 @@
 package main
 
 import (
-	"flag"
 	"fmt"
-	"log"
 	"os"
 	"path/filepath"
 	"regexp"
 	"strings"
 
+	"github.com/mirkobrombin/go-cli-builder/v1/command"
+	"github.com/mirkobrombin/go-cli-builder/v1/root"
 	"github.com/russross/blackfriday/v2"
 	"github.com/vanilla-os/pallas/pkg/generator"
 	"github.com/vanilla-os/pallas/pkg/parser"
 )
 
-// Entry point of the documentation generator. 
-// Handle flag parsing for configuration, determine project and output directories, 
-// Clean the output directory, read the README.md file, parse project packages, 
-// generate HTML documentation and create the index page.
+// PallasConfig holds the configuration for the documentation generation.
+type PallasConfig struct {
+	Dest    string
+	Title   string
+	Readme  string
+	Project string
+}
+
 func main() {
-	// Flags
-	destDir := flag.String("dest", "", "Specify a custom destination directory for the output (default is './dist')")
-	title := flag.String("title", "", "Specify a custom title for the documentation (default is the project root name)")
-	readmePath := flag.String("readme", "", "Specify a custom README.md file to use for the index page (default is to search in project root)")
-	flag.Parse()
+	args := os.Args[1:]
+	inject := true
 
-	// Here we assume the project path is the first argument (if provided)
-	projectPath := "."
-	if len(flag.Args()) > 0 {
-		projectPath = flag.Args()[0]
-	}
-
-	// Determine the absolute path of the project
-	absProjectPath, err := filepath.Abs(projectPath)
-	if err != nil {
-		log.Fatalf("Error determining absolute path: %v", err)
-	}
-
-	// Determine the output directory
-	var outputDir string
-	if *destDir != "" {
-		outputDir, err = filepath.Abs(*destDir)
-		if err != nil {
-			log.Fatalf("Error determining absolute path for output directory: %v", err)
+	// If the user provided a command, we don't inject "generate"
+	if len(args) > 0 {
+		cmd := args[0]
+		if !strings.HasPrefix(cmd, "-") {
+			switch cmd {
+			case "version", "completion", "help", "generate":
+				inject = false
+			}
 		}
-	} else {
-		// Default to a 'dist' directory in the current working directory
-		cwd, err := os.Getwd()
-		if err != nil {
-			log.Fatalf("Error determining current working directory: %v", err)
-		}
-		outputDir = filepath.Join(cwd, "dist")
 	}
 
-	fmt.Printf("Documentation will be generated in: %s\n", outputDir)
+	if inject {
+		newArgs := append([]string{os.Args[0], "generate"}, args...)
+		os.Args = newArgs
+	}
 
-	// Clean the output directory
+	rootCmd := root.NewRootCommand(
+		"pallas",
+		"pallas [command] [flags]",
+		"Pallas is a documentation generator for Go projects.",
+		"0.0.1",
+	)
+
+	genCmd := &command.Command{
+		Name:        "generate",
+		Usage:       "generate [flags] [project-path]",
+		Description: "Generate documentation",
+		Run: func(c *command.Command, rf *command.RootFlags, args []string) error {
+			return runGenerate(c, args)
+		},
+	}
+	genCmd.AddFlag("dest", "d", "Destination directory", "./dist", true)
+	genCmd.AddFlag("title", "t", "Project title", "Pallas", true)
+	genCmd.AddFlag("readme", "r", "Readme file", "README.md", true)
+	genCmd.AddFlag("project", "p", "Project root", ".", true)
+
+	rootCmd.AddCommand(genCmd)
+
+	if err := rootCmd.Execute(); err != nil {
+		fmt.Println(err)
+		os.Exit(1)
+	}
+}
+
+// runGenerate handles the main logic for parsing and generating documentation.
+func runGenerate(c *command.Command, args []string) error {
+	config := &PallasConfig{
+		Dest:    c.GetFlagString("dest"),
+		Title:   c.GetFlagString("title"),
+		Readme:  c.GetFlagString("readme"),
+		Project: c.GetFlagString("project"),
+	}
+
+	if len(args) > 0 {
+		config.Project = args[0]
+	}
+
+	projectPath := config.Project
+	if projectPath == "" {
+		projectPath = "."
+	}
+	projectPath, _ = filepath.Abs(projectPath)
+
+	outputDir := config.Dest
+	if outputDir == "." || outputDir == "" || outputDir == "/" {
+		outputDir = "./dist"
+	}
+	outputDir, _ = filepath.Abs(outputDir)
+
+	if strings.HasPrefix(projectPath, outputDir) && projectPath == outputDir {
+		return fmt.Errorf("output directory cannot be the same as project directory")
+	}
+
+	fmt.Println("Generating documentation for:", projectPath)
+	fmt.Println("Output directory:", outputDir)
+
 	if err := os.RemoveAll(outputDir); err != nil {
-		log.Fatalf("Error cleaning output directory: %v", err)
+		return fmt.Errorf("error cleaning output directory: %v", err)
+	}
+	if err := os.MkdirAll(outputDir, 0755); err != nil {
+		return fmt.Errorf("error creating output directory: %v", err)
 	}
 
-	// Change to the project directory so as to correctly parse the packages
-	if err := os.Chdir(absProjectPath); err != nil {
-		log.Fatalf("Error changing directory: %v", err)
-	}
-
-	// Determine the title for the documentation
-	docTitle := *title
-	if docTitle == "" {
-		docTitle = filepath.Base(absProjectPath)
-	}
-
-	// Read and convert README.md content to HTML
-	readmeContent := readReadme(*readmePath, absProjectPath)
-
-	// Here is where the magic happens (parsing and generating the documentation)
-	fmt.Printf("Parsing project at path: %s\n", absProjectPath)
-	packages, err := parser.GetPackages()
+	pkgDirs, err := parser.GetPackages(projectPath)
 	if err != nil {
-		log.Fatalf("Error fetching packages: %v", err)
+		return fmt.Errorf("error finding packages: %v", err)
 	}
 
-	// Generate HTML for each package
-	for _, pkgPath := range packages {
-		fmt.Printf("Parsing package: %s\n", pkgPath)
-		relativePath, err := filepath.Rel(absProjectPath, pkgPath)
+	var entities []parser.EntityInfo
+	var imports []parser.ImportInfo
+	seenPackages := make(map[string]bool)
+
+	for _, pkgDir := range pkgDirs {
+		rel, _ := filepath.Rel(projectPath, pkgDir)
+		ents, imps, err := parser.ParseEntitiesInPackage(projectPath, pkgDir, rel)
 		if err != nil {
-			log.Fatalf("Error determining relative path: %v", err)
+			fmt.Printf("Warning: failed to parse package %s: %v\n", rel, err)
+			continue
 		}
 
-		entities, imports, err := parser.ParseEntitiesInPackage(projectPath, pkgPath, relativePath)
-		if err != nil {
-			log.Fatalf("Error parsing package %s: %v", pkgPath, err)
+		if len(ents) > 0 {
+			for i := range ents {
+				if relFile, err := filepath.Rel(projectPath, ents[i].File); err == nil {
+					ents[i].File = relFile
+				}
+			}
 		}
 
-		err = generator.GenerateHTML(absProjectPath, pkgPath, entities, imports, outputDir, docTitle)
-		if err != nil {
-			log.Fatalf("Error generating HTML for package %s: %v", pkgPath, err)
-		}
-
-		fmt.Printf("HTML generated for package: %s\n", pkgPath)
+		entities = append(entities, ents...)
+		imports = append(imports, imps...)
 	}
 
-	// Move static assets to the output directory
-	if err := generator.CopyStaticAssets(outputDir); err != nil {
-		log.Fatalf("Error copying static assets: %v", err)
-	}
-
-	// Generate the index.html file
-	packageNamesFull := make([]string, 0, len(packages))
-	for _, pkgPath := range packages {
-		relativePath, err := filepath.Rel(absProjectPath, pkgPath)
-		if err != nil {
-			log.Fatalf("Error determining relative path: %v", err)
+	var packageLinks []generator.PackageLink
+	for _, e := range entities {
+		pkg := e.Package
+		if pkg == "" {
+			pkg = "main"
 		}
-		packageNamesFull = append(packageNamesFull, relativePath)
-	}
-
-	err = generator.GenerateIndex(absProjectPath, packageNamesFull, outputDir, docTitle, readmeContent)
-	if err != nil {
-		log.Fatalf("Error generating index.html: %v", err)
-	}
-
-	fmt.Printf("Documentation index generated in %s/index.html\n", outputDir)
-}
-
-// Convert markdown content to HTML, 
-// apply Tailwind CSS classes to HTML elements
-// and fix image URLs
-//
-// Returns: HTML string with applied CSS classes and fixes
-func markdownToHTML(markdown string) string {
-	htmlContent := blackfriday.Run([]byte(markdown))
-	htmlString := string(htmlContent)
-
-	// Tailwind CSS classes
-	htmlString = strings.ReplaceAll(htmlString, "<h1", `<h1 class="text-3xl font-bold mb-4"`)
-	htmlString = strings.ReplaceAll(htmlString, "<h2", `<h2 class="text-2xl font-bold mb-4"`)
-	htmlString = strings.ReplaceAll(htmlString, "<h3", `<h3 class="text-xl font-bold mb-4"`)
-	htmlString = strings.ReplaceAll(htmlString, "<p>", `<p class="text-gray-700 dark:text-gray-300 mb-4">`)
-	htmlString = strings.ReplaceAll(htmlString, "<ul>", `<ul class="list-disc ml-6 mb-4">`)
-	htmlString = strings.ReplaceAll(htmlString, "<ol>", `<ol class="list-decimal ml-6 mb-4">`)
-	htmlString = strings.ReplaceAll(htmlString, "<li>", `<li class="mb-2">`)
-	htmlString = strings.ReplaceAll(htmlString, "<pre>", `<pre class="bg-gray-800 text-white rounded-lg p-4 overflow-auto mb-4">`)
-	htmlString = strings.ReplaceAll(htmlString, "<code>", `<code class="bg-gray-100 dark:bg-gray-800 rounded px-1 hljs">`)
-	htmlString = strings.ReplaceAll(htmlString, "<blockquote>", `<blockquote class="border-l-4 border-gray-300 pl-4 italic mb-4">`)
-	htmlString = strings.ReplaceAll(htmlString, "<table>", `<table class="border-collapse border border-gray-300 w-full mb-4">`)
-	htmlString = strings.ReplaceAll(htmlString, "<th>", `<th class="border border-gray-300 bg-gray-100 dark:bg-gray-800 p-2">`)
-	htmlString = strings.ReplaceAll(htmlString, "<td>", `<td class="border border-gray-300 p-2">`)
-	htmlString = strings.ReplaceAll(htmlString, "<a ", `<a class="text-blue-500 hover:underline" target="_blank" `)
-
-	// Fixes
-	re := regexp.MustCompile(`<img[^>]*src="([^"]*)"[^>]*>`)
-	htmlString = re.ReplaceAllStringFunc(htmlString, func(imgTag string) string {
-		matches := re.FindStringSubmatch(imgTag)
-		if len(matches) > 1 && !(strings.HasPrefix(matches[1], "http://") || strings.HasPrefix(matches[1], "https://")) {
-			return ""
+		if !seenPackages[pkg] {
+			seenPackages[pkg] = true
+			packageLinks = append(packageLinks, generator.PackageLink{
+				Name: pkg,
+				Link: "pkg_" + sanitizePackageName(pkg) + ".html",
+			})
 		}
-		return imgTag
-	})
+	}
 
-	return htmlString
-}
+	fmt.Printf("Found %d entities and %d imports\n", len(entities), len(imports))
 
-// Read the README.md file from a custom path or the project root,
-// convert its content to HTML.
-// If the README.md file is not found, generate default content.
-//
-// Returns: HTML string of the README.md content
-func readReadme(customPath, projectRoot string) string {
-	var readmePath string
-	if customPath != "" {
-		readmePath = customPath
+	readmePath := filepath.Join(projectPath, config.Readme)
+	readmeContent := ""
+	readmeRaw := ""
+
+	// Attempt to locate and read the README file
+	if _, err := os.Stat(readmePath); err == nil {
+		content, _ := os.ReadFile(readmePath)
+		readmeRaw = string(content)
+		readmeContent = markdownToHTML(readmeRaw)
 	} else {
-		readmePath = filepath.Join(projectRoot, "README.md")
+		readmePath = filepath.Join(projectPath, strings.ToLower(config.Readme))
+		if _, err := os.Stat(readmePath); err == nil {
+			content, _ := os.ReadFile(readmePath)
+			readmeRaw = string(content)
+			readmeContent = markdownToHTML(readmeRaw)
+		}
 	}
 
-	content, err := os.ReadFile(readmePath)
-	if err != nil {
-		fmt.Println("README.md not found, generating default content...")
-		return markdownToHTML(generateDefaultReadme())
+	toc := extractTOC(readmeRaw)
+
+	// Auto-detect project title from directory name if default is used
+	if config.Title == "Pallas" {
+		base := filepath.Base(projectPath)
+		if base != "." && base != "/" {
+			if len(base) > 0 {
+				clean := strings.ReplaceAll(base, "-", " ")
+				clean = strings.ReplaceAll(clean, "_", " ")
+				clean = strings.ReplaceAll(clean, ".", " ")
+				config.Title = strings.Title(clean)
+			} else {
+				config.Title = base
+			}
+		}
 	}
 
-	return markdownToHTML(string(content))
+	initials := getInitials(config.Title)
+	modulePath := getModulePath(projectPath)
+
+	if err := generator.GenerateHTML(config.Title, config.Dest, entities, imports, readmeContent, initials, modulePath); err != nil {
+		return fmt.Errorf("error generating HTML: %v", err)
+	}
+
+	if err := generator.GenerateIndex(config.Title, outputDir, entities, readmeContent, initials, toc, packageLinks); err != nil {
+		return fmt.Errorf("error generating index: %v", err)
+	}
+
+	fmt.Println("Documentation generated successfully!")
+	return nil
 }
 
-// Generate a default README.md content as a fallback
-// when no custom README.md is provided.
-//
-// Returns: Default markdown string with basic documentation instructions
-func generateDefaultReadme() string {
-	return `# Welcome to the Documentation
+// getInitials extracts a short representation (initials) from the project title.
+func getInitials(title string) string {
+	title = strings.TrimPrefix(title, "http://")
+	title = strings.TrimPrefix(title, "https://")
 
-This is the autogenerated documentation for the project. You can provide a custom README.md file to replace this content.
+	f := func(c rune) bool {
+		return c == ' ' || c == '-' || c == '_' || c == '.' || c == '/'
+	}
+	parts := strings.FieldsFunc(title, f)
 
-## Instructions to Replace
+	var validParts []string
+	for _, p := range parts {
+		if len(p) > 0 {
+			validParts = append(validParts, p)
+		}
+	}
 
-1. Create a README.md file in the root of your project.
-2. Add content to it following standard Markdown syntax.
-3. Re-run the documentation generation with the --readme flag pointing to your README.md file (Pallas will detect it automatically if it's in the root).
+	if len(validParts) == 0 {
+		return "P"
+	}
 
-For more information, visit the [Pallas](https://github.com/vanilla-os/pallas) GitHub repository.`
+	if len(validParts) >= 2 {
+		return strings.ToUpper(string(validParts[0][0]) + string(validParts[1][0]))
+	}
+
+	s := validParts[0]
+	if len(s) == 0 {
+		return "P"
+	}
+
+	var uppers []rune
+	for _, r := range s {
+		if r >= 'A' && r <= 'Z' {
+			uppers = append(uppers, r)
+		}
+	}
+
+	if len(uppers) >= 2 {
+		return string(uppers[0]) + string(uppers[1])
+	}
+
+	return strings.ToUpper(string(s[0]))
+}
+
+// markdownToHTML converts markdown text to HTML.
+func markdownToHTML(md string) string {
+	renderer := blackfriday.NewHTMLRenderer(blackfriday.HTMLRendererParameters{
+		Flags: blackfriday.CommonHTMLFlags,
+	})
+	extensions := blackfriday.CommonExtensions | blackfriday.AutoHeadingIDs | blackfriday.HardLineBreak | blackfriday.Autolink
+	output := blackfriday.Run([]byte(md), blackfriday.WithRenderer(renderer), blackfriday.WithExtensions(extensions))
+	return string(output)
+}
+
+// extractTOC parses the markdown and extracts a Table of Contents.
+func extractTOC(md string) []generator.TOCEntry {
+	var toc []generator.TOCEntry
+	node := blackfriday.New(blackfriday.WithExtensions(blackfriday.CommonExtensions | blackfriday.AutoHeadingIDs)).Parse([]byte(md))
+
+	node.Walk(func(node *blackfriday.Node, entering bool) blackfriday.WalkStatus {
+		if entering && node.Type == blackfriday.Heading {
+			anchor := string(node.HeadingData.HeadingID)
+
+			var titleParts []string
+			for child := node.FirstChild; child != nil; child = child.Next {
+				if child.Type == blackfriday.Text || child.Type == blackfriday.Code {
+					titleParts = append(titleParts, string(child.Literal))
+				}
+			}
+			title := strings.Join(titleParts, "")
+
+			if anchor == "" {
+				anchor = blackfriday.SanitizedAnchorName(title)
+			}
+
+			toc = append(toc, generator.TOCEntry{
+				ID:    anchor,
+				Title: title,
+				Level: node.HeadingData.Level,
+			})
+		}
+		return blackfriday.GoToNext
+	})
+	return toc
+}
+
+// sanitizePackageName ensures the package name is safe for file names.
+func sanitizePackageName(pkg string) string {
+	return regexp.MustCompile(`[^a-zA-Z0-9_-]`).ReplaceAllString(pkg, "_")
+}
+
+// getModulePath reads the go.mod file and extracts the module path.
+func getModulePath(projectPath string) string {
+	goModPath := filepath.Join(projectPath, "go.mod")
+	content, err := os.ReadFile(goModPath)
+	if err != nil {
+		return ""
+	}
+	lines := strings.Split(string(content), "\n")
+	for _, line := range lines {
+		line = strings.TrimSpace(line)
+		if strings.HasPrefix(line, "module ") {
+			return strings.TrimSpace(strings.TrimPrefix(line, "module "))
+		}
+	}
+	return ""
 }
