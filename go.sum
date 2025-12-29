@@ -1,7 +1,9 @@
 github.com/google/go-cmp v0.6.0 h1:ofyhxvXcZhMsU5ulbFiLKl/XBFqE1GSq7atu8tAmTRI=
 github.com/google/go-cmp v0.6.0/go.mod h1:17dUlkBOakJ0+DkrSSNjCkIjxS6bF9zb3elmeNGIjoY=
-github.com/mirkobrombin/go-cli-builder v1.0.0 h1:oLFch1y2HIaZ6MqwKGwDayXXhQfC3HAjrLpC/7xCrr8=
-github.com/mirkobrombin/go-cli-builder v1.0.0/go.mod h1:fOd36mpPgiOZubwnBaoKU4MMwZpdlsWZYulyHsYgNY8=
+github.com/mirkobrombin/go-cli-builder v1.0.1-0.20251229213559-dcfadb1962a8 h1:1qTY8knrCpQ6sEtl1JvLGVYMMT3VwDlH6PexTVmavXQ=
+github.com/mirkobrombin/go-cli-builder v1.0.1-0.20251229213559-dcfadb1962a8/go.mod h1:C3DjsYMF49PelK2i7k+QZ/6LYKaDnDaqQDLeVbr5GGE=
+github.com/mirkobrombin/go-struct-flags v1.0.1 h1:fWqsSqhiHgBVOVxxvoZHNIVfOni1LHTatHkNzr7jp/0=
+github.com/mirkobrombin/go-struct-flags v1.0.1/go.mod h1:G9m7ZJ4EMuc6Dtd9y/JnEnecA44YohDFLPZlx58MLUU=
 github.com/russross/blackfriday/v2 v2.1.0 h1:JIOH55/0cWyOuilr9/qlrm0BSXldqnqwMsf35Ld67mk=
 github.com/russross/blackfriday/v2 v2.1.0/go.mod h1:+Rmxgy9KzJVeS9/2gXHxylqXiyQDYRxCVz55jmeOWTM=
 golang.org/x/mod v0.31.0 h1:HaW9xtz0+kOcWKwli0ZXy79Ix+UW/vOfmWI5QVd2tgI=
