@@ -101,7 +101,7 @@ func packageFilename(pkg string) string {
 
 // generatePackagePage generates a single HTML page for a specific package.
 func generatePackagePage(title string, outputDir string, pkg string, entities []parser.EntityInfo, imports []parser.ImportInfo, initials string, allPackages []PackageLink, modulePath string, typeIndex map[string]TypeInfo, projectPackages []string) error {
-	tmplPath := "pkg/generator/templates/entities.html"
+	tmplPath := "templates/entities.html"
 	tmplName := filepath.Base(tmplPath)
 
 	tmpl, err := template.New(tmplName).Funcs(template.FuncMap{
@@ -197,7 +197,7 @@ func generatePackagePage(title string, outputDir string, pkg string, entities []
 			}
 			return template.HTML(result)
 		},
-	}).ParseFiles(tmplPath)
+	}).ParseFS(templatesFS, tmplPath)
 	if err != nil {
 		return err
 	}

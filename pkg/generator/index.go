@@ -28,7 +28,7 @@ type IndexPageData struct {
 
 // GenerateIndex creates the main entry point (index.html) of the documentation.
 func GenerateIndex(title string, outputDir string, entities []parser.EntityInfo, readme string, initials string, toc []TOCEntry, packages []PackageLink) error {
-	tmplPath := "pkg/generator/templates/index.html"
+	tmplPath := "templates/index.html"
 	tmplName := filepath.Base(tmplPath)
 
 	tmpl, err := template.New(tmplName).Funcs(template.FuncMap{
@@ -38,7 +38,7 @@ func GenerateIndex(title string, outputDir string, entities []parser.EntityInfo,
 		"html": func(s string) template.HTML {
 			return template.HTML(s)
 		},
-	}).ParseFiles(tmplPath)
+	}).ParseFS(templatesFS, tmplPath)
 	if err != nil {
 		return err
 	}
