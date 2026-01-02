@@ -57,20 +57,38 @@
 			background: #374151;
 		}
 
+		/* Reset prose pre to prevent double box */
+		.prose pre {
+			background: transparent !important;
+			border: none !important;
+			padding: 0 !important;
+			margin: 0 !important;
+			border-radius: 0 !important;
+		}
+
 		pre code {
 			background-color: transparent !important;
 			padding: 0 !important;
 		}
 
-		.prose pre {
-			background-color: #f9fafb !important;
-			border: 1px solid #e5e7eb;
-			border-radius: 0.5rem;
+		/* Inline code styling */
+		.prose code {
+			background-color: #f4f4f5;
+			padding: 0.125rem 0.375rem;
+			border-radius: 0.25rem;
+			font-size: 0.875em;
+			font-weight: 500;
 		}
 
-		.dark .prose pre {
-			background-color: #18181b !important;
-			border-color: #27272a;
+		.dark .prose code {
+			background-color: #27272a;
+		}
+
+		.prose pre code {
+			background-color: transparent !important;
+			padding: 0 !important;
+			font-size: 0.875rem;
+			font-weight: 400;
 		}
 
 		/* Mobile Drawer Styles */
@@ -179,6 +197,51 @@
 								</svg>
 								API Reference
 							</a>
+						</li>
+						{{end}}
+						{{range .DocPages}}
+						<li>
+							<a href="{{.Filename}}"
+								class="flex items-center gap-2 px-3 py-2 text-sm font-medium rounded-md text-zinc-600 dark:text-zinc-400 hover:bg-zinc-50 dark:hover:bg-zinc-900 transition-colors">
+								<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+									<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+										d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z">
+									</path>
+								</svg>
+								{{.Title}}
+							</a>
+						</li>
+						{{end}}
+						{{range .DocSections}}
+						<li>
+							<div class="doc-section" data-section="{{.Name}}">
+								<h4 class="flex items-center gap-2 px-3 py-2 text-sm font-medium text-zinc-600 dark:text-zinc-400 cursor-pointer hover:text-zinc-900 dark:hover:text-white"
+									onclick="toggleSection(this, '{{.Name}}', {{if .HasIndex}}'doc_{{.Name | lower}}_index.html'{{else}}null{{end}})">
+									<svg class="w-3 h-3 transition-transform section-arrow" fill="none"
+										stroke="currentColor" viewBox="0 0 24 24">
+										<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+											d="M9 5l7 7-7 7"></path>
+									</svg>
+									<svg class="w-4 h-4 text-zinc-400" fill="none" stroke="currentColor"
+										viewBox="0 0 24 24">
+										<path
+											d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z">
+										</path>
+									</svg>
+									{{.Name}}
+								</h4>
+								<ul
+									class="section-content ml-5 space-y-0.5 border-l border-zinc-200 dark:border-zinc-800 hidden">
+									{{range .Pages}}
+									<li>
+										<a href="{{.Filename}}"
+											class="flex items-center gap-2 px-3 py-1.5 text-sm rounded-md text-zinc-600 dark:text-zinc-400 hover:bg-zinc-50 dark:hover:bg-zinc-900 hover:text-zinc-900 dark:hover:text-white transition-colors">
+											{{.Title}}
+										</a>
+									</li>
+									{{end}}
+								</ul>
+							</div>
 						</li>
 						{{end}}
 					</ul>
@@ -313,6 +376,84 @@
 			document.body.style.overflow = sidebar.classList.contains('show') ? 'hidden' : '';
 		}
 
+		// Section toggle with localStorage persistence
+		function getOpenSections() {
+			try {
+				return JSON.parse(localStorage.getItem('pallas-open-sections') || '[]');
+			} catch { return []; }
+		}
+
+		function saveOpenSections(sections) {
+			localStorage.setItem('pallas-open-sections', JSON.stringify(sections));
+		}
+
+		function toggleSection(header, name, indexUrl) {
+			const content = header.nextElementSibling;
+			const arrow = header.querySelector('.section-arrow');
+			const isOpen = !content.classList.contains('hidden');
+
+			if (isOpen) {
+				content.classList.add('hidden');
+				arrow.classList.remove('rotate-90');
+				const sections = getOpenSections().filter(s => s !== name);
+				saveOpenSections(sections);
+			} else {
+				content.classList.remove('hidden');
+				arrow.classList.add('rotate-90');
+				const sections = getOpenSections();
+				if (!sections.includes(name)) sections.push(name);
+				saveOpenSections(sections);
+				if (indexUrl) window.location.href = indexUrl;
+			}
+		}
+
+		// Restore section states from localStorage
+		document.querySelectorAll('.doc-section').forEach(section => {
+			const name = section.dataset.section;
+			const content = section.querySelector('.section-content');
+			const arrow = section.querySelector('.section-arrow');
+			if (getOpenSections().includes(name)) {
+				content.classList.remove('hidden');
+				arrow.classList.add('rotate-90');
+			}
+		});
+
+		// Transform code blocks to API-style (same as docs pages)
+		document.querySelectorAll('.prose pre').forEach(pre => {
+			const code = pre.querySelector('code');
+			if (!code) return;
+
+			const langClass = Array.from(code.classList).find(c => c.startsWith('language-'));
+			let lang = langClass ? langClass.replace('language-', '') : '';
+
+			// Some markdown renderers may include a language label as the first line (e.g. "bash").
+			// If present, use it as language (only if we don't already have one) and remove that line.
+			const rawText = code.textContent || '';
+			const firstLine = rawText.split(/\r?\n/)[0]?.trim() || '';
+			const knownLangLabel = new Set(['bash', 'sh', 'shell', 'zsh', 'fish', 'go', 'js', 'javascript', 'ts', 'typescript', 'json', 'yaml', 'yml', 'toml', 'ini', 'dockerfile', 'html', 'css', 'python', 'py', 'rust', 'rs', 'c', 'cpp', 'java']);
+			if (!lang && knownLangLabel.has(firstLine.toLowerCase())) {
+				lang = firstLine.toLowerCase();
+				code.textContent = rawText.split(/\r?\n/).slice(1).join('\n');
+			}
+
+			if (!lang) lang = 'code';
+
+			const wrapper = document.createElement('div');
+			wrapper.className = 'not-prose relative group rounded-xl border border-zinc-200 dark:border-zinc-800 bg-zinc-50 dark:bg-zinc-900/50 overflow-hidden transition-all hover:border-zinc-300 dark:hover:border-zinc-700 my-6';
+
+			const header = document.createElement('div');
+			header.className = 'flex items-center justify-between px-4 py-2 border-b border-zinc-200 dark:border-zinc-800 bg-zinc-100/50 dark:bg-zinc-900/50';
+			header.innerHTML = `<span class="text-xs font-mono text-zinc-500">${lang}</span>`;
+
+			pre.style.cssText = 'background: transparent !important; margin: 0 !important; padding: 1rem !important; border: none !important;';
+			pre.className = 'overflow-x-auto text-sm';
+
+			wrapper.appendChild(header);
+			pre.parentNode.insertBefore(wrapper, pre);
+			wrapper.appendChild(pre);
+		});
+
+		// Apply syntax highlighting AFTER transformation
 		hljs.highlightAll();
 
 		const searchModal = document.getElementById('search-modal');
@@ -332,7 +473,6 @@
 			if (!searchModal.classList.contains('hidden')) searchInput.focus();
 		}
 
-		// Close on backdrop click
 		searchModal.addEventListener('click', (e) => {
 			if (e.target === searchModal || e.target.classList.contains('backdrop-blur-sm')) {
 				toggleSearch();
@@ -364,6 +504,29 @@
 				searchResults.classList.add('hidden');
 				searchEmpty.classList.remove('hidden');
 			}
+		});
+
+		// Transform code blocks to API-style
+		document.querySelectorAll('.prose pre').forEach(pre => {
+			const code = pre.querySelector('code');
+			if (!code) return;
+
+			const langClass = Array.from(code.classList).find(c => c.startsWith('language-'));
+			const lang = langClass ? langClass.replace('language-', '') : 'code';
+
+			const wrapper = document.createElement('div');
+			wrapper.className = 'not-prose relative group rounded-xl border border-zinc-200 dark:border-zinc-800 bg-zinc-50 dark:bg-zinc-900/50 overflow-hidden transition-all hover:border-zinc-300 dark:hover:border-zinc-700 my-6';
+
+			const header = document.createElement('div');
+			header.className = 'flex items-center justify-between px-4 py-2 border-b border-zinc-200 dark:border-zinc-800 bg-zinc-100/50 dark:bg-zinc-900/50';
+			header.innerHTML = `<span class="text-xs font-mono text-zinc-500">${lang}</span>`;
+
+			pre.style.cssText = 'background: transparent !important; margin: 0 !important; padding: 1rem !important; border: none !important; border-radius: 0 !important;';
+			pre.className = 'overflow-x-auto text-sm font-mono';
+
+			wrapper.appendChild(header);
+			pre.parentNode.insertBefore(wrapper, pre);
+			wrapper.appendChild(pre);
 		});
 	</script>
 </body>

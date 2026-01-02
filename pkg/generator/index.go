@@ -18,16 +18,18 @@ type TOCEntry struct {
 
 // IndexPageData contains the data necessary to render the documentation home page.
 type IndexPageData struct {
-	Title    string
-	Entities []parser.EntityInfo
-	Readme   template.HTML
-	Initials string
-	TOC      []TOCEntry
-	Packages []PackageLink
+	Title       string
+	Entities    []parser.EntityInfo
+	Readme      template.HTML
+	Initials    string
+	TOC         []TOCEntry
+	Packages    []PackageLink
+	DocPages    []DocPage
+	DocSections []DocSection
 }
 
 // GenerateIndex creates the main entry point (index.html) of the documentation.
-func GenerateIndex(title string, outputDir string, entities []parser.EntityInfo, readme string, initials string, toc []TOCEntry, packages []PackageLink) error {
+func GenerateIndex(title string, outputDir string, entities []parser.EntityInfo, readme string, initials string, toc []TOCEntry, packages []PackageLink, docPages []DocPage, docSections []DocSection) error {
 	tmplPath := "templates/index.html"
 	tmplName := filepath.Base(tmplPath)
 
@@ -44,12 +46,14 @@ func GenerateIndex(title string, outputDir string, entities []parser.EntityInfo,
 	}
 
 	data := IndexPageData{
-		Title:    title,
-		Entities: entities,
-		Readme:   template.HTML(readme),
-		Initials: initials,
-		TOC:      toc,
-		Packages: packages,
+		Title:       title,
+		Entities:    entities,
+		Readme:      template.HTML(readme),
+		Initials:    initials,
+		TOC:         toc,
+		Packages:    packages,
+		DocPages:    docPages,
+		DocSections: docSections,
 	}
 
 	outputPath := filepath.Join(outputDir, "index.html")

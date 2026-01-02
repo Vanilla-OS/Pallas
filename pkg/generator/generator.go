@@ -25,6 +25,24 @@ type PageData struct {
 	TypeIndex       map[string]TypeInfo
 	ProjectPackages []string
 	ModulePath      string
+	DocPages        []DocPage
+	DocSections     []DocSection
+}
+
+// DocPage represents a documentation page (e.g., from docs/ folder).
+type DocPage struct {
+	Title    string
+	Filename string
+	Content  template.HTML
+	ID       string
+	Section  string // Parent section name (empty for root docs)
+}
+
+// DocSection represents a collapsible section of documentation pages.
+type DocSection struct {
+	Name     string
+	Pages    []DocPage
+	HasIndex bool
 }
 
 // TypeInfo stores cross-reference data for a Go type.
@@ -42,7 +60,7 @@ type PackageLink struct {
 }
 
 // GenerateHTML orchestrates the generation of HTML documentation for all packages in the project.
-func GenerateHTML(title string, outputDir string, entities []parser.EntityInfo, imports []parser.ImportInfo, readme string, initials string, modulePath string) error {
+func GenerateHTML(title string, outputDir string, entities []parser.EntityInfo, imports []parser.ImportInfo, readme string, initials string, modulePath string, docPages []DocPage, docSections []DocSection) error {
 	packageGroups := make(map[string][]parser.EntityInfo)
 	for _, e := range entities {
 		pkg := e.Package
@@ -84,13 +102,25 @@ func GenerateHTML(title string, outputDir string, entities []parser.EntityInfo, 
 		projectPackages = append(projectPackages, pkg)
 	}
 
+	// docPages here contains ALL pages for generation, but we filter root-only for sidebar
+	var rootDocPages []DocPage
+	for _, p := range docPages {
+		if p.Section == "" {
+			rootDocPages = append(rootDocPages, p)
+		}
+	}
+
 	for pkg, pkgEntities := range packageGroups {
-		if err := generatePackagePage(title, outputDir, pkg, pkgEntities, imports, initials, allPackages, modulePath, typeIndex, projectPackages); err != nil {
+		if err := generatePackagePage(title, outputDir, pkg, pkgEntities, imports, initials, allPackages, modulePath, typeIndex, projectPackages, rootDocPages, docSections); err != nil {
 			return err
 		}
 	}
 
-	return GenerateSearchIndex(outputDir, entities)
+	if err := GenerateDocPages(title, outputDir, docPages, rootDocPages, initials, allPackages, modulePath, typeIndex, projectPackages, docSections); err != nil {
+		return err
+	}
+
+	return GenerateSearchIndex(outputDir, entities, docPages)
 }
 
 // packageFilename generates a safe filename for a package's documentation page.
@@ -100,7 +130,7 @@ func packageFilename(pkg string) string {
 }
 
 // generatePackagePage generates a single HTML page for a specific package.
-func generatePackagePage(title string, outputDir string, pkg string, entities []parser.EntityInfo, imports []parser.ImportInfo, initials string, allPackages []PackageLink, modulePath string, typeIndex map[string]TypeInfo, projectPackages []string) error {
+func generatePackagePage(title string, outputDir string, pkg string, entities []parser.EntityInfo, imports []parser.ImportInfo, initials string, allPackages []PackageLink, modulePath string, typeIndex map[string]TypeInfo, projectPackages []string, docPages []DocPage, docSections []DocSection) error {
 	tmplPath := "templates/entities.html"
 	tmplName := filepath.Base(tmplPath)
 
@@ -240,6 +270,8 @@ func generatePackagePage(title string, outputDir string, pkg string, entities []
 		TypeIndex:       typeIndex,
 		ProjectPackages: projectPackages,
 		ModulePath:      modulePath,
+		DocPages:        docPages,
+		DocSections:     docSections,
 	}
 
 	outputPath := filepath.Join(outputDir, packageFilename(pkg))
@@ -252,8 +284,87 @@ func generatePackagePage(title string, outputDir string, pkg string, entities []
 	return tmpl.Execute(f, data)
 }
 
+// GenerateDocPages generates HTML pages for the documentation files found in the docs/ directory.
+func GenerateDocPages(title string, outputDir string, allDocPages []DocPage, rootDocPages []DocPage, initials string, allPackages []PackageLink, modulePath string, typeIndex map[string]TypeInfo, projectPackages []string, docSections []DocSection) error {
+	tmplPath := "templates/page.html"
+	tmplName := filepath.Base(tmplPath)
+
+	tmpl, err := template.New(tmplName).Funcs(template.FuncMap{
+		"contains": strings.Contains,
+		"replace":  strings.ReplaceAll,
+		"lower":    strings.ToLower,
+		"json": func(v interface{}) string {
+			b, _ := json.Marshal(v)
+			return string(b)
+		},
+		"html": func(s string) template.HTML {
+			return template.HTML(s)
+		},
+		"linkTypes": func(input interface{}) template.HTML {
+			var code string
+			switch v := input.(type) {
+			case string:
+				code = v
+			case template.HTML:
+				code = string(v)
+			default:
+				return ""
+			}
+
+			// If it matches [Package.Type], replace it
+			re := regexp.MustCompile(`\[([a-zA-Z0-9_]+)\.([a-zA-Z0-9_]+)\]`)
+			code = re.ReplaceAllStringFunc(code, func(match string) string {
+				parts := re.FindStringSubmatch(match)
+				if len(parts) == 3 {
+					pkg := parts[1]
+					typ := parts[2]
+					key := pkg + "." + typ
+					if info, ok := typeIndex[key]; ok {
+						return fmt.Sprintf(`<a href="%s" class="text-brand-600 dark:text-brand-400 hover:underline">%s</a>`, info.Link, typ)
+					}
+				}
+				return match
+			})
+
+			return template.HTML(code)
+		},
+	}).ParseFS(templatesFS, tmplPath)
+	if err != nil {
+		return err
+	}
+
+	for _, page := range allDocPages {
+		data := PageData{
+			Title:           title,
+			Readme:          page.Content,
+			Initials:        initials,
+			PackageName:     page.Title,
+			AllPackages:     allPackages,
+			TypeIndex:       typeIndex,
+			ProjectPackages: projectPackages,
+			ModulePath:      modulePath,
+			DocPages:        rootDocPages,
+			DocSections:     docSections,
+		}
+
+		outputPath := filepath.Join(outputDir, page.Filename)
+		f, err := os.Create(outputPath)
+		if err != nil {
+			return fmt.Errorf("error creating doc page %s: %v", page.Filename, err)
+		}
+
+		if err := tmpl.Execute(f, data); err != nil {
+			f.Close()
+			return fmt.Errorf("error executing template for %s: %v", page.Filename, err)
+		}
+		f.Close()
+	}
+
+	return nil
+}
+
 // GenerateSearchIndex creates a JSON file used for client-side documentation search.
-func GenerateSearchIndex(outputDir string, entities []parser.EntityInfo) error {
+func GenerateSearchIndex(outputDir string, entities []parser.EntityInfo, docPages []DocPage) error {
 	type SearchItem struct {
 		Name        string `json:"name"`
 		Type        string `json:"type"`
@@ -287,6 +398,16 @@ func GenerateSearchIndex(outputDir string, entities []parser.EntityInfo) error {
 				Package:     pkg,
 			})
 		}
+	}
+
+	for _, p := range docPages {
+		items = append(items, SearchItem{
+			Name:        p.Title,
+			Type:        "page",
+			Description: "Documentation page: " + p.Title,
+			Link:        p.Filename,
+			Package:     "docs",
+		})
 	}
 
 	f, err := os.Create(filepath.Join(outputDir, "search.json"))

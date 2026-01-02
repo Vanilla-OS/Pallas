@@ -241,6 +241,56 @@
 						{{end}}
 					</div>
 				</div>
+				<!-- Documentation Navigation -->
+				{{if .DocPages}}
+				<div>
+					<h3
+						class="font-semibold text-xs text-zinc-900 dark:text-zinc-100 mb-4 uppercase tracking-wider px-2">
+						Documentation</h3>
+					<div class="space-y-0.5">
+						{{range .DocPages}}
+						<a href="{{.Filename}}"
+							class="group flex items-center gap-2 px-3 py-1.5 text-sm rounded-md transition-all text-zinc-600 dark:text-zinc-400 hover:bg-zinc-100 dark:hover:bg-zinc-800 hover:text-zinc-900 dark:hover:text-zinc-100">
+							<svg class="w-4 h-4 text-zinc-400 group-hover:text-zinc-500" fill="none"
+								stroke="currentColor" viewBox="0 0 24 24">
+								<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+									d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z">
+								</path>
+							</svg>
+							{{.Title}}
+						</a>
+						{{end}}
+						{{range .DocSections}}
+						<div class="group">
+							<h4 class="flex items-center gap-2 px-3 py-2 text-sm font-medium text-zinc-600 dark:text-zinc-400 cursor-pointer hover:text-zinc-900 dark:hover:text-white"
+								onclick="this.nextElementSibling.classList.toggle('hidden'); this.querySelector('svg').classList.toggle('rotate-90')">
+								<svg class="w-3 h-3 transition-transform rotate-90" fill="none" stroke="currentColor"
+									viewBox="0 0 24 24">
+									<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+										d="M9 5l7 7-7 7"></path>
+								</svg>
+								<svg class="w-4 h-4 text-zinc-400" fill="none" stroke="currentColor"
+									viewBox="0 0 24 24">
+									<path d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z">
+									</path>
+								</svg>
+								{{.Name}}
+							</h4>
+							<ul class="ml-5 space-y-0.5 border-l border-zinc-200 dark:border-zinc-800">
+								{{range .Pages}}
+								<li>
+									<a href="{{.Filename}}"
+										class="flex items-center gap-2 px-3 py-1.5 text-sm rounded-md text-zinc-600 dark:text-zinc-400 hover:bg-zinc-50 dark:hover:bg-zinc-900 hover:text-zinc-900 dark:hover:text-white transition-colors">
+										{{.Title}}
+									</a>
+								</li>
+								{{end}}
+							</ul>
+						</div>
+						{{end}}
+					</div>
+				</div>
+				{{end}}
 
 				<!-- Grouped by File -->
 				<div>

@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"html/template"
 	"os"
 	"path/filepath"
 	"regexp"
@@ -169,11 +170,87 @@ func (c *GenerateCmd) Run() error {
 	initials := getInitials(config.Title)
 	modulePath := getModulePath(projectPath)
 
-	if err := generator.GenerateHTML(config.Title, config.Dest, entities, imports, readmeContent, initials, modulePath); err != nil {
+	// Process docs/ directory with hierarchical structure
+	var docPages []generator.DocPage
+	docSectionsMap := make(map[string]*generator.DocSection)
+	var docSections []generator.DocSection
+
+	docsDir := filepath.Join(projectPath, "docs")
+	if info, err := os.Stat(docsDir); err == nil && info.IsDir() {
+		filepath.WalkDir(docsDir, func(path string, d os.DirEntry, err error) error {
+			if err != nil {
+				return nil
+			}
+			if d.IsDir() || !strings.HasSuffix(d.Name(), ".md") {
+				return nil
+			}
+
+			content, _ := os.ReadFile(path)
+			htmlContent := markdownToHTML(string(content))
+
+			relPath, _ := filepath.Rel(docsDir, path)
+			dir := filepath.Dir(relPath)
+			baseName := strings.TrimSuffix(filepath.Base(relPath), ".md")
+
+			// Flatten filename for output
+			flatName := strings.ReplaceAll(strings.TrimSuffix(relPath, ".md"), string(filepath.Separator), "_")
+
+			// Clean title from filename
+			cleanTitle := strings.Title(strings.ReplaceAll(strings.ReplaceAll(baseName, "-", " "), "_", " "))
+
+			page := generator.DocPage{
+				Title:    cleanTitle,
+				Filename: "doc_" + flatName + ".html",
+				Content:  template.HTML(htmlContent),
+				ID:       flatName,
+			}
+
+			if dir == "." {
+				// Root level doc
+				page.Section = ""
+				docPages = append(docPages, page)
+			} else {
+				// Nested doc - belongs to a section
+				sectionName := strings.Title(strings.ReplaceAll(strings.ReplaceAll(dir, "-", " "), "_", " "))
+				page.Section = sectionName
+
+				if docSectionsMap[sectionName] == nil {
+					docSectionsMap[sectionName] = &generator.DocSection{
+						Name:  sectionName,
+						Pages: []generator.DocPage{},
+					}
+				}
+
+				// Check if this is an index.md
+				if baseName == "index" {
+					docSectionsMap[sectionName].HasIndex = true
+					page.Title = sectionName
+				}
+
+				docSectionsMap[sectionName].Pages = append(docSectionsMap[sectionName].Pages, page)
+			}
+
+			return nil
+		})
+	}
+
+	// Convert map to slice
+	for _, section := range docSectionsMap {
+		docSections = append(docSections, *section)
+	}
+
+	// Combine all pages for search and generation
+	var allDocPages []generator.DocPage
+	allDocPages = append(allDocPages, docPages...)
+	for _, section := range docSections {
+		allDocPages = append(allDocPages, section.Pages...)
+	}
+
+	if err := generator.GenerateHTML(config.Title, config.Dest, entities, imports, readmeContent, initials, modulePath, allDocPages, docSections); err != nil {
 		return fmt.Errorf("error generating HTML: %v", err)
 	}
 
-	if err := generator.GenerateIndex(config.Title, outputDir, entities, readmeContent, initials, toc, packageLinks); err != nil {
+	if err := generator.GenerateIndex(config.Title, outputDir, entities, readmeContent, initials, toc, packageLinks, docPages, docSections); err != nil {
 		return fmt.Errorf("error generating index: %v", err)
 	}
 
