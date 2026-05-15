@@ -505,29 +505,6 @@
 				searchEmpty.classList.remove('hidden');
 			}
 		});
-
-		// Transform code blocks to API-style
-		document.querySelectorAll('.prose pre').forEach(pre => {
-			const code = pre.querySelector('code');
-			if (!code) return;
-
-			const langClass = Array.from(code.classList).find(c => c.startsWith('language-'));
-			const lang = langClass ? langClass.replace('language-', '') : 'code';
-
-			const wrapper = document.createElement('div');
-			wrapper.className = 'not-prose relative group rounded-xl border border-zinc-200 dark:border-zinc-800 bg-zinc-50 dark:bg-zinc-900/50 overflow-hidden transition-all hover:border-zinc-300 dark:hover:border-zinc-700 my-6';
-
-			const header = document.createElement('div');
-			header.className = 'flex items-center justify-between px-4 py-2 border-b border-zinc-200 dark:border-zinc-800 bg-zinc-100/50 dark:bg-zinc-900/50';
-			header.innerHTML = `<span class="text-xs font-mono text-zinc-500">${lang}</span>`;
-
-			pre.style.cssText = 'background: transparent !important; margin: 0 !important; padding: 1rem !important; border: none !important; border-radius: 0 !important;';
-			pre.className = 'overflow-x-auto text-sm font-mono';
-
-			wrapper.appendChild(header);
-			pre.parentNode.insertBefore(wrapper, pre);
-			wrapper.appendChild(pre);
-		});
 	</script>
 </body>
 
